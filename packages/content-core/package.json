@@ -1,0 +1,22 @@
+{
+  "name": "@jas/content-core",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./content-common": { "types": "./dist/content-common.d.ts", "default": "./dist/content-common.js" },
+    "./content-parser": { "types": "./dist/content-parser.d.ts", "default": "./dist/content-parser.js" },
+    "./frontmatter": { "types": "./dist/frontmatter.d.ts", "default": "./dist/frontmatter.js" },
+    "./date-sort": { "types": "./dist/date-sort.d.ts", "default": "./dist/date-sort.js" },
+    "./diary-contract": { "types": "./dist/diary-contract.d.ts", "default": "./dist/diary-contract.js" },
+    "./graph-content": { "types": "./dist/graph-content.d.ts", "default": "./dist/graph-content.js" },
+    "./graph-document": { "types": "./dist/graph-document.d.ts", "default": "./dist/graph-document.js" },
+    "./heading-content": { "types": "./dist/heading-content.d.ts", "default": "./dist/heading-content.js" },
+    "./preprocess-alerts": { "types": "./dist/preprocess-alerts.d.ts", "default": "./dist/preprocess-alerts.js" },
+    "./roadmap-content": { "types": "./dist/roadmap-content.d.ts", "default": "./dist/roadmap-content.js" },
+    "./roadmap-status": { "types": "./dist/roadmap-status.d.ts", "default": "./dist/roadmap-status.js" },
+    "./writing-guide": { "types": "./dist/writing-guide.d.ts", "default": "./dist/writing-guide.js" }
+  },
+  "dependencies": { "@jas/graph-core": "0.1.0", "yaml": "2.8.2" }
+}

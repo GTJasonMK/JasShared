@@ -1,0 +1,713 @@
+/* ========================================
+   Markdown 预览样式（与 JasBlog globals.css 完全一致）
+   ======================================== */
+
+.prose-chinese {
+  font-size: 1.05rem;
+  line-height: 2;
+  color: var(--color-text-muted);
+}
+
+/* 移除最后一个子元素的底部 margin，避免多余空白 */
+.prose-chinese > *:last-child {
+  margin-bottom: 0;
+}
+
+/* 标题 */
+.prose-chinese h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-top: 2em;
+  margin-bottom: 0.8em;
+}
+
+.prose-chinese h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-top: 1.8em;
+  margin-bottom: 0.6em;
+  padding-left: 12px;
+  border-left: 3px solid var(--color-primary);
+}
+
+.prose-chinese h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose-chinese h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+}
+
+/* 段落和文本 */
+.prose-chinese p {
+  margin-bottom: 1.2em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.prose-chinese strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.prose-chinese em {
+  font-style: italic;
+}
+
+.prose-chinese del {
+  text-decoration: line-through;
+  color: var(--color-gray);
+}
+
+/* 链接 */
+.prose-chinese a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.prose-chinese a:hover {
+  color: var(--color-primary-dark);
+}
+
+/* 列表 */
+.prose-chinese ul {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin-bottom: 1.2em;
+}
+
+.prose-chinese ol {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin-bottom: 1.2em;
+}
+
+.prose-chinese li {
+  margin-bottom: 0.4em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.prose-chinese li > ul,
+.prose-chinese li > ol {
+  margin-top: 0.4em;
+  margin-bottom: 0.4em;
+}
+
+/* 任务列表 (GFM) */
+.prose-chinese ul:has(input[type="checkbox"]) {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.prose-chinese li:has(> input[type="checkbox"]) {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+
+.prose-chinese input[type="checkbox"] {
+  margin-top: 0.5em;
+  accent-color: var(--color-primary);
+}
+
+/* 引用块 */
+.prose-chinese blockquote {
+  border-left: 4px solid var(--color-primary);
+  padding: 0.5em 1em;
+  margin: 1.5em 0;
+  background-color: var(--color-paper-dark);
+  border-radius: 0 8px 8px 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.prose-chinese blockquote p {
+  margin-bottom: 0.5em;
+}
+
+.prose-chinese blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* 行内代码 */
+.prose-chinese code {
+  background-color: var(--color-paper-dark);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: "Fira Code", "JetBrains Mono", Consolas, monospace;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* 代码块 */
+.prose-chinese pre {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 1.5em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  font-family: "Fira Code", "JetBrains Mono", Consolas, monospace;
+  font-size: 0.9em;
+  line-height: 1.6;
+}
+
+.prose-chinese pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* 表格 */
+.prose-chinese table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  font-size: 0.95em;
+}
+
+.prose-chinese th {
+  background-color: var(--color-paper-dark);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75em 1em;
+  border: 1px solid var(--color-paper-darker);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.prose-chinese td {
+  padding: 0.75em 1em;
+  border: 1px solid var(--color-paper-darker);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.prose-chinese tr:nth-child(even) {
+  background-color: var(--color-paper-dark);
+}
+
+/* 分割线 */
+.prose-chinese hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+  margin: 2em 0;
+}
+
+/* 图片 */
+.prose-chinese img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+/* ========================================
+   highlight.js 代码高亮主题 (Catppuccin Mocha 风格)
+   ======================================== */
+
+.hljs {
+  background: #1e1e2e;
+  color: #cdd6f4;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in {
+  color: #cba6f7;
+}
+
+.hljs-string,
+.hljs-attr {
+  color: #a6e3a1;
+}
+
+.hljs-number,
+.hljs-literal {
+  color: #fab387;
+}
+
+.hljs-comment {
+  color: #6c7086;
+  font-style: italic;
+}
+
+.hljs-function,
+.hljs-title {
+  color: #89b4fa;
+}
+
+.hljs-variable,
+.hljs-template-variable {
+  color: #f38ba8;
+}
+
+.hljs-type,
+.hljs-class .hljs-title {
+  color: #f9e2af;
+}
+
+.hljs-punctuation {
+  color: #9399b2;
+}
+
+.hljs-property {
+  color: #89dceb;
+}
+
+.hljs-operator {
+  color: #94e2d5;
+}
+
+.hljs-meta {
+  color: #f5c2e7;
+}
+
+.hljs-regexp {
+  color: #f5c2e7;
+}
+
+.hljs-tag {
+  color: #89b4fa;
+}
+
+.hljs-name {
+  color: #89b4fa;
+}
+
+.hljs-attribute {
+  color: #f9e2af;
+}
+
+.hljs-selector-class,
+.hljs-selector-id {
+  color: #cba6f7;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+/* ========================================
+   代码块容器
+   ======================================== */
+
+.code-block-wrapper {
+  position: relative;
+  margin: 1.5em 0;
+}
+
+.code-block-wrapper pre {
+  margin: 0;
+  padding-top: 2.5em;
+}
+
+.code-block-lang {
+  position: absolute;
+  top: 0.5em;
+  left: 1em;
+  font-size: 0.75rem;
+  color: #6c7086;
+  font-family: "Fira Code", "JetBrains Mono", Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ========================================
+   标题锚点链接
+   ======================================== */
+
+.heading-anchor {
+  position: absolute;
+  left: -1.5em;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gray-light);
+  font-weight: 400;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.group\/heading:hover .heading-anchor {
+  opacity: 1;
+}
+
+.heading-anchor:hover {
+  color: var(--color-primary);
+}
+
+.prose-chinese h1,
+.prose-chinese h2,
+.prose-chinese h3,
+.prose-chinese h4 {
+  position: relative;
+}
+
+/* ========================================
+   GitHub 风格 Alert
+   ======================================== */
+
+.github-alert {
+  margin: 1.5em 0;
+  padding: 1em 1.25em;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.github-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-weight: 600;
+  margin-bottom: 0.5em;
+}
+
+.github-alert-title svg {
+  flex-shrink: 0;
+}
+
+.github-alert-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Alert 类型颜色 */
+.alert-note {
+  background-color: rgba(56, 139, 253, 0.1);
+  border-color: #388bfd;
+}
+
+.alert-note .github-alert-title {
+  color: #388bfd;
+}
+
+.alert-tip {
+  background-color: rgba(46, 160, 67, 0.1);
+  border-color: #2ea043;
+}
+
+.alert-tip .github-alert-title {
+  color: #2ea043;
+}
+
+.alert-important {
+  background-color: rgba(130, 80, 223, 0.1);
+  border-color: #8250df;
+}
+
+.alert-important .github-alert-title {
+  color: #8250df;
+}
+
+.alert-warning {
+  background-color: rgba(187, 128, 9, 0.1);
+  border-color: #bb8009;
+}
+
+.alert-warning .github-alert-title {
+  color: #bb8009;
+}
+
+.alert-caution {
+  background-color: rgba(218, 54, 51, 0.1);
+  border-color: #da3633;
+}
+
+.alert-caution .github-alert-title {
+  color: #da3633;
+}
+
+/* ========================================
+   脚注样式
+   ======================================== */
+
+.prose-chinese .footnotes {
+  margin-top: 3em;
+  padding-top: 1.5em;
+  border-top: 1px solid var(--color-paper-darker);
+  font-size: 0.9em;
+  color: var(--color-gray);
+}
+
+.prose-chinese .footnotes ol {
+  padding-left: 1.5em;
+}
+
+.prose-chinese sup a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.prose-chinese sup a:hover {
+  text-decoration: underline;
+}
+
+/* ========================================
+   定义列表
+   ======================================== */
+
+.prose-chinese dl {
+  margin: 1.5em 0;
+}
+
+.prose-chinese dt {
+  font-weight: 600;
+  color: var(--color-text);
+  margin-top: 1em;
+}
+
+.prose-chinese dd {
+  margin-left: 1.5em;
+  color: var(--color-text-muted);
+}
+
+/* ========================================
+   键盘按键
+   ======================================== */
+
+.prose-chinese kbd {
+  display: inline-block;
+  padding: 0.2em 0.5em;
+  font-size: 0.85em;
+  font-family: "Fira Code", "JetBrains Mono", Consolas, monospace;
+  background: var(--color-paper-dark);
+  border: 1px solid var(--color-paper-darker);
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* ========================================
+   Mermaid 图表样式
+   ======================================== */
+
+.mermaid-container {
+  display: flex;
+  justify-content: center;
+  padding: 1.5em;
+  background: var(--color-paper-dark);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.mermaid-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaid-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2em;
+  background: var(--color-paper-dark);
+  border-radius: 8px;
+  color: var(--color-gray);
+}
+
+.mermaid-error {
+  padding: 1em;
+  background: rgba(218, 54, 51, 0.1);
+  border: 1px solid #da3633;
+  border-radius: 8px;
+}
+
+.mermaid-error-title {
+  font-weight: 600;
+  color: #da3633;
+  margin-bottom: 0.5em;
+}
+
+.mermaid-error-message {
+  font-size: 0.9em;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5em;
+}
+
+.mermaid-error-code {
+  font-size: 0.85em;
+  padding: 0.5em;
+  background: var(--color-paper-dark);
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+/* ========================================
+   KaTeX 数学公式样式
+   ======================================== */
+
+.prose-chinese .katex-display {
+  margin: 1.5em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5em 0;
+}
+
+.prose-chinese .katex {
+  font-size: 1.1em;
+}
+
+/* 行内公式间距 */
+.prose-chinese .katex-inline {
+  padding: 0 0.15em;
+}
+
+/* ========================================
+   深色主题 - Markdown 预览样式覆盖
+   ======================================== */
+
+/* 行内代码 */
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .prose-chinese code:not(pre code) {
+  background-color: #2a2a2e;
+}
+
+/* 引用块 */
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .prose-chinese blockquote {
+  background-color: var(--color-paper-dark);
+}
+
+/* 表格 */
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .prose-chinese th {
+  background-color: var(--color-surface-dark);
+}
+
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .prose-chinese tr:nth-child(even) {
+  background-color: var(--color-paper-dark);
+}
+
+/* GitHub Alert 深色背景 */
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .alert-note {
+  background-color: rgba(56, 139, 253, 0.15);
+}
+
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .alert-tip {
+  background-color: rgba(46, 160, 67, 0.15);
+}
+
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .alert-important {
+  background-color: rgba(130, 80, 223, 0.15);
+}
+
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .alert-warning {
+  background-color: rgba(187, 128, 9, 0.15);
+}
+
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .alert-caution {
+  background-color: rgba(218, 54, 51, 0.15);
+}
+
+/* 键盘按键 */
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .prose-chinese kbd {
+  background: var(--color-paper-dark);
+  border-color: var(--color-border);
+}
+
+/* Mermaid 容器 */
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .mermaid-container {
+  background: var(--color-paper-dark);
+}
+
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .mermaid-loading {
+  background: var(--color-paper-dark);
+}
+
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .mermaid-error-code {
+  background: var(--color-paper-dark);
+}
+
+/* 脚注分割线 */
+:is(.dark .jas-content, .jas-content[data-theme="dark"]) .prose-chinese .footnotes {
+  border-top-color: var(--color-border);
+}
+
+/* ========================================
+   JasBlog 组件样式
+   ======================================== */
+
+/* 印章效果 */
+/* 文章卡片 */
+.card-hover {
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-paper-darker);
+  background: var(--color-card);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-vermilion);
+}
+
+/* 云纹分割线 */
+.divider-cloud {
+  height: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24'%3E%3Cpath d='M0 12 Q25 4 50 12 T100 12' fill='none' stroke='%23c94043' stroke-width='1' opacity='0.2'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-position: center;
+}
+
+/* 标签 */
+.tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  background: var(--color-paper-dark);
+  color: var(--color-gray);
+  border-radius: 20px;
+}
+
+/* 主按钮 */
+.btn-primary {
+  display: inline-block;
+  padding: 10px 24px;
+  background: var(--color-vermilion);
+  color: white;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  background: var(--color-vermilion-dark);
+}
+
+/* 目录滚动条 */
+.toc-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.toc-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.toc-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-paper-darker);
+  border-radius: 2px;
+}
+
+.toc-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-light);
+}

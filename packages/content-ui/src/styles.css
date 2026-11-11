@@ -1,0 +1,40 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+@import "katex/dist/katex.min.css";
+@import "./prose.css";
+@source "./";
+@source "./roadmap-ui.ts";
+.jas-content { min-width: 0; }
+.jas-content {
+  --color-ink: #2c2c2c;
+  --color-ink-light: #4a4a4a;
+  --color-gray: #6b6b6b;
+  --color-gray-light: #999;
+  --color-vermilion: #c94043;
+  --color-vermilion-dark: #a33235;
+  --color-gold: #b8860b;
+  --color-paper: #fdfbf7;
+  --color-paper-dark: #f5f0e8;
+  --color-paper-darker: #e8e0d0;
+  --color-border: #e8e0d0;
+  --color-primary: var(--color-vermilion);
+  --color-surface-dark: var(--color-paper-dark);
+  --color-card: #fff;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 5%);
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 12%);
+}
+.dark .jas-content, .jas-content[data-theme="dark"], .jas-content[data-theme="dark"] .jas-content {
+  --color-ink: #e8e6e3;
+  --color-ink-light: #b8b5b0;
+  --color-gray: #8a8680;
+  --color-gray-light: #6b6765;
+  --color-paper: #1e1e22;
+  --color-paper-dark: #161619;
+  --color-paper-darker: #111113;
+  --color-border: #2a2a2e;
+  --color-card: #1e1e22;
+}
+.jas-content :is(button, a):focus-visible { outline: 2px solid var(--color-vermilion, #c94043); outline-offset: 3px; }
+.jas-content dialog::backdrop { background: rgb(0 0 0 / 80%); }
+.jas-content .section-title { position: relative; display: inline-block; }
+.jas-content .section-title::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, var(--color-vermilion), transparent); }
