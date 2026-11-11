@@ -4,7 +4,7 @@
 
 ## 正式安装包与独立构建
 
-五个包已发布至对应 GitHub Release。content-ui 使用修复目录 ID 的 0.1.1，其余包使用 0.1.0。三个应用锁定压缩包 URL 和 SHA-512 integrity，lockfile 中没有本地路径或工作区链接。
+五个包已发布至对应 GitHub Release。content-ui 使用修复目录 ID 与脚注关联的 0.1.2，其余包使用 0.1.0。三个应用锁定压缩包 URL 和 SHA-512 integrity，lockfile 中没有本地路径或工作区链接。
 
 从工作区外的四个独立目录验证，不提供相邻应用源码：
 
@@ -13,7 +13,7 @@
 | GT | npm ci、build、TypeScript 回归 | 33 项通过 |
 | JasBlog | npm ci、build、test、lint | 14 项通过 |
 | JasBlogEditor | npm ci、build、test | 154 项通过 |
-| JasShared | 公开仓库克隆、npm ci、build、test、依赖边界 | 24 项通过 |
+| JasShared | 公开仓库克隆、npm ci、build、test、依赖边界 | 25 项通过 |
 
 共享库干净检出后单独构建 graph-ui，只构建 graph-core 和 graph-ui，验证了包的独立构建边界。两个后端分别通过 GT 6 项、编辑器 1 项 Rust 测试。后端测试设置 60 秒超时。
 
@@ -35,7 +35,7 @@ npm 12 的应用配置只允许 package.json 直接声明的远程包。锁文�
 
 Chromium 覆盖 1440、1024、390 和 375px。共享正文、图谱、博客页面、目录与详情交互接受独立渲染复核，未发现新增横向溢出或 pageerror。检查了节点详情开关、小地图、嵌入标签、深浅主题和帮助中的 Mermaid。
 
-补充点击测试修复了 React 严格模式重复渲染时标题 ID 与目录不一致的问题。标题 ID 在 Markdown 解析阶段分配；重复处理和渲染保持相同结果。真实浏览器验证了目录滚动、图片放大和 Escape 关闭。
+补充点击测试修复了 React 严格模式重复渲染时标题 ID 与目录不一致的问题。标题 ID 在 Markdown 解析阶段分配，保留脚注等已有 ID；重复处理和渲染保持相同结果。真实浏览器验证了目录滚动、图片放大和 Escape 关闭。
 
 编辑器主界面 375px 的 11px 横向溢出在基线中已存在；桌面窗口本身设置 900px 最小宽度。本次没有改造这套窄屏工作流。共享预览在同宽度下没有横向溢出。
 

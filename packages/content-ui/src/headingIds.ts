@@ -11,7 +11,7 @@ export function assignHeadingIds({ idPrefix = "" }: { idPrefix?: string } = {}) 
     // 解析过程各自分配 ID，React 重复渲染不再消耗共享计数器。
     const resolve = createHeadingIdResolver();
     const visit = (node: HtmlNode) => {
-      if (node.tagName && /^h[1-4]$/.test(node.tagName)) node.properties = { ...node.properties, id: idPrefix + resolve(text(node)) };
+      if (node.tagName && /^h[1-4]$/.test(node.tagName) && !node.properties?.id) node.properties = { ...node.properties, id: idPrefix + resolve(text(node)) };
       node.children?.forEach(visit);
     };
     visit(tree);

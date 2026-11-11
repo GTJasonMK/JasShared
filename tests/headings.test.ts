@@ -21,3 +21,10 @@ test('heading IDs remain stable across repeated processing, inline formatting an
   assert.match(first, /not JSON/);
   assert.match(first, /role="alert"/);
 });
+
+test('generated footnote labels retain the IDs referenced by accessible descriptions', () => {
+  const markup = renderToStaticMarkup(createElement(MarkdownRenderer, { content: '## Ordinary heading\n\nBody with a footnote.[^1]\n\n[^1]: A footnote definition.\n' }));
+  const describedBy = markup.match(/aria-describedby="([^"]+)"/)?.[1];
+  assert.ok(describedBy);
+  assert.ok(markup.includes(`id="${describedBy}"`));
+});
