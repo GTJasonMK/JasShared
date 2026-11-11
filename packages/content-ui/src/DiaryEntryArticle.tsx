@@ -58,8 +58,6 @@ export default function DiaryEntryArticle({ entry, singleEntry = false }: DiaryE
 
       <ArticleContent
         content={entry.content}
-        showTableOfContents={false}
-        showBackToTop={false}
       />
     </article>
   );

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseMarkdownContent, serializeContentDocument, parseFrontmatter, parseArticleContentSegments, extractHeadingsFromContent } from "../packages/content-core/src/index";
-import { createEmptyGraph } from "../packages/graph-core/src/index";
+import { parseMarkdownContent, serializeContentDocument, parseFrontmatter, extractHeadingsFromContent } from "../packages/content-core/src/index";
 import { pathIdentity, renameSiblingPath } from "../packages/content-core/src/paths";
 import { findGraphCodeBlocks } from "../packages/content-core/src/graph-blocks";
 
@@ -42,15 +41,6 @@ test("calendar dates remain strings and both content consumers receive identical
   assert.equal((parseMarkdownContent(raw, "note").metadata as { date: string }).date, "2026-04-03");
 });
 
-test("article segmentation shares graph behavior across notes and diary and retains invalid input", () => {
-  const valid = 'before\n\n```graph\n' + JSON.stringify(createEmptyGraph()) + '\n```\n\nafter';
-  assert.deepEqual(parseArticleContentSegments(valid).map((segment) => segment.type), ["markdown", "graph", "markdown"]);
-  const invalid = '```graph\n{"nodes":[],"edges":[]}\n```';
-  const segments = parseArticleContentSegments(invalid);
-  assert.equal(segments[0].type, "error");
-  assert.equal("content" in segments[0] && segments[0].content, invalid);
-});
-
 test("heading extraction ignores code fences and disambiguates repeated labels", () => {
   const content = '## 标题\n```md\n## hidden\n```\n## 标题';
   assert.deepEqual(extractHeadingsFromContent(content).map((heading) => heading.id), ["标题", "标题-1"]);
@@ -61,4 +51,15 @@ test("document identities preserve Unix case and sibling renames reject director
   assert.equal(pathIdentity("C:\\Work\\A.md"), pathIdentity("c:/work/a.md"));
   assert.throws(() => renameSiblingPath("/workspace/a.md", "../b", ".md"), /文件名/);
   assert.equal(renameSiblingPath("/a.md", "b", ".md"), "/b.md");
+});
+
+test('plain docs preserve their format and persist date-only metadata edits', () => {
+  const parsed = parseMarkdownContent('plain\n', 'doc');
+  assert.equal(serializeContentDocument({ ...parsed, type: 'doc', frontmatterBlock: undefined, metadataDirty: false }), 'plain\n');
+  const saved = serializeContentDocument({ ...parsed, type: 'doc', frontmatterBlock: undefined, metadata: { title: '', date: '2026-11-12' }, metadataDirty: true });
+  assert.equal(parseFrontmatter(saved, 'doc').data.date, '2026-11-12');
+  const existing = parseMarkdownContent('---\n# retained\ntitle: before\ncustom: yes\n---\nbody', 'doc');
+  const edited = serializeContentDocument({ ...existing, type: 'doc', frontmatterBlock: existing.frontmatterBlock ?? undefined, metadata: { title: 'after' }, metadataDirty: true });
+  assert.match(edited, /# retained/);
+  assert.equal(parseFrontmatter(edited, 'doc').data.custom, 'yes');
 });

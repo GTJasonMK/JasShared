@@ -1,9 +1,9 @@
 "use client";
 import type { CSSProperties } from "react";
-import { getNodeColor, nodeColorConfig, type KnowledgeNodeData } from "@jas/graph-core";
+import { getNodeColor, NODE_COLORS, type KnowledgeNodeData } from "@jas/graph-core";
 
 export function NodeCard({ data, className = "", style }: { data: KnowledgeNodeData; className?: string; style?: CSSProperties }) {
-  const color = nodeColorConfig[getNodeColor(data.color)];
+  const color = NODE_COLORS[getNodeColor(data.color)];
   const lockScope = data.lockMode === "transitive" ? "所有子节点" : data.lockMode === "level" ? `前 ${Math.max(1, Math.floor(data.lockDepth || 1))} 级子节点` : "直接子节点";
   return <div className={`jas-graph relative px-4 py-3 rounded-xl border-2 min-w-[120px] max-w-[200px] transition-all duration-200 hover:shadow-md ${className}`} style={{ backgroundColor: color.bg, borderColor: color.border, ...style }}>
     <div className="font-semibold text-sm text-center select-none break-words" style={{ color: color.text }}>{data.label}</div>

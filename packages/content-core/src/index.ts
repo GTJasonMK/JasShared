@@ -7,7 +7,6 @@ export * from "./display-metadata";
 export * from "./editor-metadata";
 export * from "./frontmatter";
 export * from "./graph-document";
-export * from "./graph-content";
 export * from "./graph-blocks";
 export * from "./heading-content";
 export * from "./preprocess-alerts";

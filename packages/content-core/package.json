@@ -1,6 +1,6 @@
 {
   "name": "@jas/content-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -10,7 +10,6 @@
     "./frontmatter": { "types": "./dist/frontmatter.d.ts", "default": "./dist/frontmatter.js" },
     "./date-sort": { "types": "./dist/date-sort.d.ts", "default": "./dist/date-sort.js" },
     "./diary-contract": { "types": "./dist/diary-contract.d.ts", "default": "./dist/diary-contract.js" },
-    "./graph-content": { "types": "./dist/graph-content.d.ts", "default": "./dist/graph-content.js" },
     "./graph-document": { "types": "./dist/graph-document.d.ts", "default": "./dist/graph-document.js" },
     "./heading-content": { "types": "./dist/heading-content.d.ts", "default": "./dist/heading-content.js" },
     "./preprocess-alerts": { "types": "./dist/preprocess-alerts.d.ts", "default": "./dist/preprocess-alerts.js" },
@@ -18,5 +17,13 @@
     "./roadmap-status": { "types": "./dist/roadmap-status.d.ts", "default": "./dist/roadmap-status.js" },
     "./writing-guide": { "types": "./dist/writing-guide.d.ts", "default": "./dist/writing-guide.js" }
   },
-  "dependencies": { "@jas/graph-core": "0.1.0", "yaml": "2.8.2" }
+  "dependencies": {
+    "@jas/graph-core": "0.2.0",
+    "yaml": "2.8.2",
+    "unified": "11.0.5",
+    "remark-parse": "11.0.0",
+    "remark-gfm": "4.0.1",
+    "remark-math": "6.0.0",
+    "mdast-util-to-hast": "13.2.1"
+  }
 }

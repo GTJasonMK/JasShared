@@ -117,8 +117,16 @@ function ImageZoom({
 function ZoomDialog({ src, alt, onClose }: { src: string; alt?: string; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const Image = useContentHost().Image ?? "img";
-  useEffect(() => { const dialog = ref.current; dialog?.showModal(); return () => dialog?.close(); }, []);
-  return <dialog ref={ref} aria-label={alt || "图片预览"} onCancel={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} className="jas-content p-4 rounded-lg max-w-[95vw] max-h-[95vh]">
+  useEffect(() => {
+    const dialog = ref.current!;
+    const trigger = document.activeElement;
+    dialog.showModal();
+    return () => {
+      dialog.close();
+      if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus({ preventScroll: true });
+    };
+  }, []);
+  return <dialog ref={ref} aria-label={alt || "图片预览"} onCancel={(event) => { event.preventDefault(); onClose(); }} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} className="jas-content p-4 rounded-lg max-w-[95vw] max-h-[95vh]">
     <button type="button" onClick={onClose} className="block ml-auto mb-2">关闭</button>
     <Image src={src} alt={alt || ""} width={1200} height={675} className="max-w-[90vw] max-h-[80vh] object-contain rounded-lg" />
   </dialog>;

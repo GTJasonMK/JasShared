@@ -5,8 +5,8 @@ import { type Node } from "@xyflow/react";
 import { sanitizeHtml } from "./sanitize-html";
 import {
   type KnowledgeNodeData,
-  nodeColorConfig,
-  edgeColorConfig,
+  NODE_COLORS,
+  EDGE_COLORS,
   getNodeColor,
 } from "@jas/graph-core";
 
@@ -18,9 +18,9 @@ interface NodeDetailPanelProps {
 export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps) {
   const data = node.data as KnowledgeNodeData;
   const color = getNodeColor(data.color);
-  const colorConfig = nodeColorConfig[color];
+  const colorConfig = NODE_COLORS[color];
   const edgeColor = data.edgeColor;
-  const edgeColorInfo = edgeColor ? edgeColorConfig[edgeColor] : null;
+  const edgeColorInfo = edgeColor ? EDGE_COLORS[edgeColor] : null;
   const rawContent = typeof data.content === "string" ? data.content : "";
   const sanitizedContent = useMemo(() => sanitizeHtml(rawContent), [rawContent]);
 

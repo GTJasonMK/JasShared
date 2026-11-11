@@ -23,7 +23,7 @@ import KnowledgeEdge from "./KnowledgeEdge";
 import {
   type GraphData,
   type KnowledgeNodeData,
-  nodeColorConfig,
+  NODE_COLORS,
   getEdgeStroke,
   getNodeColor,
 } from "@jas/graph-core";
@@ -134,7 +134,7 @@ function GraphCanvasInner({ data, selectedNode, onNodeSelect, showMinimap = true
   const nodeColor = useCallback((node: Node) => {
     const nodeData = node.data as KnowledgeNodeData;
     const color = getNodeColor(nodeData.color);
-    return nodeColorConfig[color].bg;
+    return NODE_COLORS[color].bg;
   }, []);
 
   // 为节点添加类型

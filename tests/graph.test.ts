@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createEmptyGraph, deserializeGraphData, serializeGraphData, validateGraphJsonPayload } from "../packages/graph-core/src/index";
+import { createEmptyGraph, deserializeGraphData, serializeGraphData, validateGraphJsonPayload, getGraphJsonSchema } from "../packages/graph-core/src/index";
+import { validateToolInput } from '../packages/agent-core/src/tools';
 import { migrateGraphData } from "../packages/graph-core/src/migration";
 
 function graph() {
@@ -35,4 +36,18 @@ test("legacy graph migration is explicit and never mutates the source", () => {
   assert.ok(migrated.changes.length);
   assert.equal("meta" in legacy, false);
   assert.deepEqual(migrateGraphData(migrated.graph, 456), { graph: migrated.graph, changes: [] });
+});
+
+test('advertised JSON schema rejects whitespace-only identifiers and labels like the runtime validator', () => {
+  const contract = { inputSchema: getGraphJsonSchema() };
+  const input = graph();
+  assert.equal(validateToolInput(contract, input).ok, true);
+  for (const invalid of [
+    { ...input, nodes: [{ ...input.nodes[0], id: '  ' }] },
+    { ...input, nodes: [{ ...input.nodes[0], data: { ...input.nodes[0].data, label: '\t' } }] },
+    { ...input, meta: { ...input.meta, profileId: ' ' } },
+  ]) {
+    assert.equal(validateToolInput(contract, invalid).ok, false);
+    assert.equal(validateGraphJsonPayload(invalid).valid, false);
+  }
 });

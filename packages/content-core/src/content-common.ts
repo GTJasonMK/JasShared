@@ -1,9 +1,3 @@
-export function formatDate(value: unknown): string {
-  if (!value) return "";
-  if (value instanceof Date) return value.toISOString().split("T")[0];
-  return String(value);
-}
-
 export function readFrontmatterString(...values: unknown[]): string | undefined {
   for (const value of values) {
     if (typeof value === "string" && value.trim() !== "") {

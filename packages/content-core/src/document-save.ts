@@ -1,5 +1,5 @@
 import type { ContentMetadata, ContentType, LineEnding } from "./types";
-import { serializeDocContentPreservingFrontmatter, serializeMarkdownContentPreservingFrontmatter } from "./content-parser";
+import { parseDocument, stringify } from "yaml";
 
 export interface ContentDocumentSaveInput {
   type: ContentType;
@@ -17,15 +17,37 @@ export function serializeContentDocument(file: ContentDocumentSaveInput): string
   let output: string;
   if (file.hasFrontmatter && file.frontmatterBlock && !file.metadataDirty) {
     output = file.frontmatterBlock + file.content;
-  } else if (file.type === "doc") {
-    output = serializeDocContentPreservingFrontmatter(file.metadata as { title: string; date?: string }, file.content, {
-      includeFrontmatter: file.hasFrontmatter || Boolean((file.metadata as { title?: string }).title),
-      frontmatterBlock: file.frontmatterBlock,
-    });
   } else {
-    output = serializeMarkdownContentPreservingFrontmatter(file.metadata as Parameters<typeof serializeMarkdownContentPreservingFrontmatter>[0], file.content, file);
+    output = serializeFrontmatter(file) + file.content;
   }
   output = output.replace(/\r\n/g, "\n");
   if (file.lineEnding === "crlf") output = output.replace(/\n/g, "\r\n");
   return file.hasBom ? "\uFEFF" + output.replace(/^\uFEFF/, "") : output;
+}
+
+const yamlOptions = { lineWidth: 0, defaultStringType: "PLAIN", defaultKeyType: "PLAIN" } as const;
+
+function cleanMetadata(metadata: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(metadata).filter(([key, value]) => {
+    if (value === undefined || value === null) return false;
+    if (Array.isArray(value) && !value.length) return ["tags", "companions", "techStack"].includes(key);
+    return value !== "" || !["demo", "icon"].includes(key);
+  }));
+}
+
+function serializeFrontmatter(file: ContentDocumentSaveInput): string {
+  const metadata = { ...file.metadata };
+  const cleaned = cleanMetadata(metadata);
+  if (file.frontmatterBlock) {
+    const match = file.frontmatterBlock.match(/^(---\r?\n)([\s\S]*?)(\r?\n---\r?\n?)$/);
+    if (!match) throw new Error("frontmatter 边界格式无效，已保留原文。");
+    const doc = parseDocument(match[2]);
+    if (doc.errors.length) throw new Error(`frontmatter YAML 解析失败，已保留原文：${doc.errors[0].message}`);
+    for (const key of Object.keys(metadata)) if (!(key in cleaned)) doc.delete(key);
+    for (const [key, value] of Object.entries(cleaned)) doc.set(key, value);
+    return match[1] + doc.toString(yamlOptions).replace(/\n$/, "") + match[3];
+  }
+  const merged = cleanMetadata({ ...file.frontmatterRaw, ...metadata });
+  if (file.type === "doc" && !file.hasFrontmatter && !Object.values(merged).some(Boolean)) return "";
+  return `---\n${stringify(merged, yamlOptions)}---\n`;
 }

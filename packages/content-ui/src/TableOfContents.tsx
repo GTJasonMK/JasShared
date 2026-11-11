@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { extractHeadingsFromContent } from "@jas/content-core/heading-content";
+import type { HeadingItem } from "@jas/content-core/heading-content";
 import { usePreviewScrollContainer, getScrollTarget, getScrollTop, findHeading, getHeadingTop } from "./ContentHost";
 
-export function TableOfContents({ content, offsetTop = 100, idPrefix = "" }: { content: string; offsetTop?: number; idPrefix?: string }) {
+export function TableOfContents({ headings, offsetTop = 100, idPrefix = "" }: { headings: HeadingItem[]; offsetTop?: number; idPrefix?: string }) {
   const container = usePreviewScrollContainer();
   const [activeId, setActiveId] = useState("");
-  const items = useMemo(() => extractHeadingsFromContent(content).map((item) => ({ ...item, id: idPrefix + item.id })), [content, idPrefix]);
+  const items = useMemo(() => headings.map((item) => ({ ...item, id: idPrefix + item.id })), [headings, idPrefix]);
   const activeRef = useRef<HTMLAnchorElement>(null);
   const navRef = useRef<HTMLElement>(null);
   useEffect(() => {

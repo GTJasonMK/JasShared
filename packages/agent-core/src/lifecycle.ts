@@ -27,6 +27,6 @@ export function takeOverTrackedSession(tracker: AgentExecutionTracker, args: { s
     tracker.updateApproval(approval.id, { status: "expired", resolvedBy: args.actor, resolvedById: args.actorId, resolutionReason: args.reason });
   }
   tracker.updateSession(session.id, { status: "taken_over", currentStep: "human_takeover", endedAt: args.timestamp });
-  if (session.taskId) tracker.updateTask(session.taskId, { status: "cancelled", message: args.reason, completedAt: args.timestamp });
+  if (session.taskId && ["pending", "running", "blocked"].includes(tracker.getTask(session.taskId)?.status ?? "")) tracker.updateTask(session.taskId, { status: "cancelled", message: args.reason, completedAt: args.timestamp });
   return tracker.appendEvent({ type: "agent.session.taken_over", level: "warning", message: args.reason, timestamp: args.timestamp, sessionId: session.id, taskId: session.taskId, resourceId: session.resourceId, actor: args.actor, actorId: args.actorId });
 }

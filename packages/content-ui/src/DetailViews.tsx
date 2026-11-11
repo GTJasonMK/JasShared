@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { calculateRoadmapProgress, extractHeadingsFromContent, type NoteMetadata, type ProjectMetadata, type RoadmapMetadata, type RoadmapItem, type GraphMetadata, type GraphData } from "@jas/content-core";
 import { ROADMAP_ITEM_STATUS_BADGE_CONFIG, ROADMAP_PRIORITY_CONFIG, ROADMAP_STATUS_BADGE_CONFIG } from "./roadmap-ui";
 import ArticleBody from "./ArticleBody";
@@ -20,7 +20,8 @@ function Issue({ error }: { error?: string }) {
 
 export function NoteView({ note, back, comments, onTagSelect, layout = "page" }: ShellProps & { note: NoteMetadata & DocumentBody; comments?: ReactNode; onTagSelect?: (tag: string) => void }) {
   const host = useContentHost();
-  const toc = layout === "page" && extractHeadingsFromContent(note.content).length > 0;
+  const headings = useMemo(() => layout === "page" ? extractHeadingsFromContent(note.content) : [], [layout, note.content]);
+  const toc = headings.length > 0;
   const paneToc = toc && Boolean(host.scrollContainer);
   return <div className={`jas-content ${layout === "pane" ? "min-w-0 py-6" : paneToc ? "max-w-6xl mx-auto px-6 py-12" : "max-w-3xl mx-auto px-6 py-12"}`}>
     {back}
@@ -43,7 +44,7 @@ export function NoteView({ note, back, comments, onTagSelect, layout = "page" }:
         <ArticleBody content={note.content} />
         {comments && <><div className="divider-cloud my-12" /><section><h2 className="text-xl font-semibold mb-6">评论与讨论</h2>{comments}</section></>}
       </div>
-      {toc && <div className={paneToc ? "hidden lg:block w-56 flex-shrink-0" : "contents"}><TableOfContents content={note.content} /></div>}
+      {toc && <div className={paneToc ? "hidden lg:block w-56 flex-shrink-0" : "contents"}><TableOfContents headings={headings} /></div>}
     </div>
     <BackToTop />
   </div>;

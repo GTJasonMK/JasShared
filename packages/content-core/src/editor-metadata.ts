@@ -1,28 +1,16 @@
 import type {
   ContentType,
   DiaryMetadata,
-  DocMetadata,
-  GraphMetadata,
-  NoteMetadata,
-  ProjectMetadata,
-  RoadmapMetadata,
+  ContentMetadata,
 } from './types';
 import { inferDiaryFromFileName } from './diary-contract';
 import { resolveDiaryDisplay } from './display-metadata';
 
-type EditorMetadata =
-  | NoteMetadata
-  | ProjectMetadata
-  | DiaryMetadata
-  | RoadmapMetadata
-  | GraphMetadata
-  | DocMetadata;
-
 export function normalizeEditorMetadata(
   fileName: string,
   type: ContentType,
-  metadata: EditorMetadata
-): EditorMetadata {
+  metadata: ContentMetadata
+): ContentMetadata {
   if (type !== 'diary') {
     return metadata;
   }

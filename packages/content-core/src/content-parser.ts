@@ -3,19 +3,17 @@
  * 处理 Markdown frontmatter 和 JSON 的解析与序列化
  */
 
-import { parseGraphDocument } from './graph-document';
 import { parseStringArray, readFrontmatterString } from './content-common';
 import { normalizeDiaryTime } from './diary-contract';
 export { parseRoadmapItemsFromContent } from './roadmap-content';
 import { normalizeRoadmapStatus } from './roadmap-status';
-import { parse as parseYAML, parseDocument as parseYamlDocument, stringify as stringifyYAML } from 'yaml';
+import { parse as parseYAML } from 'yaml';
 import type {
   ContentType,
   NoteMetadata,
   ProjectMetadata,
   DiaryMetadata,
   RoadmapMetadata,
-  GraphData,
   GraphMetadata,
   DocMetadata,
   TechStackItem,
@@ -78,7 +76,7 @@ export function parseMarkdownContent(
     parsed = (value ?? {}) as Record<string, unknown>;
   } catch (error) {
     return {
-      metadata: getFrontmatterErrorMetadata(type),
+      metadata: getDefaultMetadata(type),
       issues: [`${type} frontmatter YAML 解析失败：${getErrorMessage(error)}`],
       frontmatterRaw: {},
       frontmatterBlock,
@@ -226,141 +224,6 @@ export function normalizeTechStack(value: unknown): TechStackItem[] | undefined 
 }
 
 /**
- * 序列化 Markdown 内容
- * 将元数据和正文组合成完整的 Markdown 文件
- */
-function serializeMarkdownContent(
-  metadata: NoteMetadata | ProjectMetadata | DiaryMetadata | RoadmapMetadata | GraphMetadata,
-  content: string,
-  frontmatterRaw?: Record<string, unknown>
-): string {
-  // 尽量保留原始 frontmatter 的未知字段与顺序（避免保存后产生无意义 diff）
-  const mergedMetadata: Record<string, unknown> = frontmatterRaw ? { ...frontmatterRaw } : {};
-  for (const [key, value] of Object.entries(metadata as unknown as Record<string, unknown>)) {
-    mergedMetadata[key] = value;
-  }
-
-  // 清理元数据，移除 undefined 和不需要的字段
-  const cleanedMetadata = cleanMetadataForYaml(mergedMetadata);
-
-  // 使用 yaml 库序列化
-  const yaml = stringifyYAML(cleanedMetadata, {
-    lineWidth: 0, // 禁用自动换行
-    defaultStringType: 'PLAIN', // 简单字符串不加引号
-    defaultKeyType: 'PLAIN',
-  });
-
-  // 不强行插入额外空行：正文是否以空行开头由编辑器内容决定（更利于“最小 diff”）
-  return `---\n${yaml}---\n${content}`;
-}
-
-const FRONTMATTER_BLOCK_REGEX = /^(---\r?\n)([\s\S]*?)(\r?\n---\r?\n?)$/;
-
-/**
- * 在“已存在 frontmatter”的基础上尽量做“最小变更”序列化：
- * - 保留原始 key 顺序与注释（取决于 yaml 文档是否可解析）
- * - 仅更新元数据中出现的字段
- *
- * 解析失败时停止保存，保留原始文本和注释。
- */
-function patchFrontmatterBlock(
-  frontmatterBlock: string,
-  metadata: Record<string, unknown>
-): string {
-  const match = frontmatterBlock.match(FRONTMATTER_BLOCK_REGEX);
-  if (!match) throw new Error('frontmatter 边界格式无效，已保留原文。');
-
-  const [, start, yamlContent, end] = match;
-
-  // 使用 yaml Document：尽量保留注释与原始结构
-  const doc = parseYamlDocument(yamlContent);
-  if (doc.errors.length > 0) {
-    throw new Error(`frontmatter YAML 解析失败，已保留原文：${doc.errors[0].message}`);
-  }
-
-  // 对齐 serializeMarkdownContent 的输出习惯：禁用自动换行，尽量用 plain string
-
-  // 只更新“元数据对象中出现过的字段”，不动未知字段（从而尽量保留原样）
-  const cleanedMetadata = cleanMetadataForYaml(metadata);
-
-  for (const key of Object.keys(metadata)) {
-    if (!(key in cleanedMetadata)) {
-      doc.delete(key);
-    }
-  }
-
-  for (const [key, value] of Object.entries(cleanedMetadata)) {
-    doc.set(key, value);
-  }
-
-  // doc.toString() 默认会带一个末尾换行；而 frontmatterBlock 的 end 本身以换行开头（\n---）
-  // 为避免在 closing --- 前多出一行空行，这里去掉最后一个 \n。
-  const nextYaml = doc.toString({ lineWidth: 0, defaultStringType: 'PLAIN', defaultKeyType: 'PLAIN' }).replace(/\n$/, '');
-  return `${start}${nextYaml}${end}`;
-}
-
-/**
- * 序列化 Markdown 内容（优先尝试“保留原始 frontmatter 样式”）
- */
-export function serializeMarkdownContentPreservingFrontmatter(
-  metadata: NoteMetadata | ProjectMetadata | DiaryMetadata | RoadmapMetadata | GraphMetadata,
-  content: string,
-  options: {
-    frontmatterBlock?: string | null;
-    frontmatterRaw?: Record<string, unknown>;
-  } = {}
-): string {
-  const { frontmatterBlock, frontmatterRaw } = options;
-  if (frontmatterBlock) {
-    return `${patchFrontmatterBlock(frontmatterBlock, metadata as unknown as Record<string, unknown>)}${content}`;
-  }
-
-  return serializeMarkdownContent(metadata, content, frontmatterRaw);
-}
-
-/**
- * 清理元数据对象，移除不需要序列化的字段
- */
-function cleanMetadataForYaml(metadata: Record<string, unknown>): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(metadata)) {
-    // 跳过 undefined 和 null
-    if (value === undefined || value === null) continue;
-
-    // 跳过空数组（可选，根据需求决定是否保留）
-    if (Array.isArray(value) && value.length === 0) {
-      // 与 JasBlog content 模板更一致：保留常见空数组字段，避免保存后产生无意义 diff
-      const shouldKeepEmptyArray =
-        key === 'tags' ||
-        key === 'companions' ||
-        key === 'techStack';
-      if (!shouldKeepEmptyArray) continue;
-    }
-
-    // 跳过空字符串的可选字段
-    if (value === '' && (key === 'demo' || key === 'icon')) continue;
-
-    result[key] = value;
-  }
-
-  return result;
-}
-
-/**
- * 从 Markdown 正文中提取 graph 代码块
- * 返回 { graphData, remainingContent }
- * 如果没有找到 graph 代码块，返回空数据
- */
-export function extractGraphFromContent(content: string): {
-  graphData: GraphData;
-  remainingContent: string;
-  error: string | null;
-} {
-  return parseGraphDocument(content);
-}
-
-/**
  * 获取默认元数据
  */
 function getDefaultMetadata(type: ContentType): NoteMetadata | ProjectMetadata | DiaryMetadata | RoadmapMetadata | GraphMetadata | DocMetadata {
@@ -416,75 +279,9 @@ function getDefaultMetadata(type: ContentType): NoteMetadata | ProjectMetadata |
   };
 }
 
-function getFrontmatterErrorMetadata(
-  type: ContentType
-): NoteMetadata | ProjectMetadata | DiaryMetadata | RoadmapMetadata | GraphMetadata | DocMetadata {
-  return getDefaultMetadata(type);
-}
-
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message.split('\n')[0] || error.message;
   }
   return String(error);
-}
-
-/**
- * 序列化普通文档内容
- */
-function serializeDocContent(
-  metadata: DocMetadata,
-  content: string,
-  includeFrontmatter: boolean
-): string {
-  if (!includeFrontmatter) {
-    return content;
-  }
-
-  const cleanedMetadata: Record<string, unknown> = {};
-  if (metadata.title) {
-    cleanedMetadata.title = metadata.title;
-  }
-  if (metadata.date) {
-    cleanedMetadata.date = metadata.date;
-  }
-
-  // 如果清理后没有任何元数据，就不添加 frontmatter
-  if (Object.keys(cleanedMetadata).length === 0) {
-    return content;
-  }
-
-  const yaml = stringifyYAML(cleanedMetadata, {
-    lineWidth: 0,
-    defaultStringType: 'PLAIN',
-    defaultKeyType: 'PLAIN',
-  });
-
-  // 不强行插入额外空行：正文是否以空行开头由编辑器内容决定（更利于“最小 diff”）
-  return `---\n${yaml}---\n${content}`;
-}
-
-/**
- * 序列化普通文档（优先尝试“保留原始 frontmatter 样式”）
- */
-export function serializeDocContentPreservingFrontmatter(
-  metadata: DocMetadata,
-  content: string,
-  options: {
-    includeFrontmatter: boolean;
-    frontmatterBlock?: string | null;
-  }
-): string {
-  const { includeFrontmatter, frontmatterBlock } = options;
-
-  if (!includeFrontmatter) {
-    return content;
-  }
-
-  // 没有旧 frontmatter：按最小规则生成新的即可
-  if (!frontmatterBlock) {
-    return serializeDocContent(metadata, content, true);
-  }
-
-  return `${patchFrontmatterBlock(frontmatterBlock, metadata as unknown as Record<string, unknown>)}${content}`;
 }

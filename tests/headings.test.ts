@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MarkdownRenderer } from "../packages/content-ui/src/MarkdownRenderer";
 import { assignHeadingIds } from "../packages/content-ui/src/headingIds";
+import { extractHeadingsFromContent } from '../packages/content-core/src/heading-content';
 
 test('heading IDs remain stable across repeated processing, inline formatting and rendering', () => {
   const heading = () => ({ type: 'element', tagName: 'h2', children: [{ type: 'text', value: 'Repeated' }], properties: {} });
@@ -27,4 +28,23 @@ test('generated footnote labels retain the IDs referenced by accessible descript
   const describedBy = markup.match(/aria-describedby="([^"]+)"/)?.[1];
   assert.ok(describedBy);
   assert.ok(markup.includes(`id="${describedBy}"`));
+});
+
+test('TOC targets match rendered headings across Markdown syntax, fences and colliding suffixes', () => {
+  const content = '# Same\n\n## **Same**\n\n## Same-1\n\n> ### [Same](https://example.org)\n\nSetext &amp; ~~strike~~ `code`\n---\n\n````md\n```\n## hidden\n```\n````\n\n## Math $x$ & ![alt](https://example.org/img.png)\n\nBody[^one]\n\n[^one]: footnote';
+  const headings = extractHeadingsFromContent(content);
+  assert.deepEqual(headings.slice(0, 3).map((heading) => heading.id), ['same-1', 'same-1-1', 'same-2']);
+  assert.ok(!headings.some((heading) => /hidden|Footnotes/.test(heading.text)));
+  const markup = renderToStaticMarkup(createElement(MarkdownRenderer, { content, idPrefix: 'entry-' }));
+  const rendered = [...markup.matchAll(/<h[2-4]\s+id="entry-([^"]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(rendered, headings.map((heading) => heading.id));
+  assert.equal(new Set(headings.map((heading) => heading.id)).size, headings.length);
+});
+
+test('ordinary headings cannot collide with IDs reserved by GFM footnotes', () => {
+  const content = '## Footnote label\n\nBody[^one]\n\n[^one]: Definition';
+  const markup = renderToStaticMarkup(createElement(MarkdownRenderer, { content }));
+  const ids = [...markup.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.equal(extractHeadingsFromContent(content)[0].id, 'footnote-label-1');
 });

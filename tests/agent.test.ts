@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCommandExecutor, createExecutionTracker, fingerprintCommand, parseExecutionState, validateToolInput } from "../packages/agent-core/src/index";
+import { createCommandExecutor, createExecutionTracker, fingerprintCommand, hashText, parseExecutionState, validateToolInput } from "../packages/agent-core/src/index";
 
 test("concurrent copies of a command execute once and results survive restoration", async () => {
   const tracker = createExecutionTracker();
@@ -91,4 +91,52 @@ test("archiving old results retains request identities and never replays old sid
   const restored = createCommandExecutor(createExecutionTracker({ initial: state }), async () => {});
   assert.equal((await restored('request-0', 'save', {}, operation)).error?.code, 'PRECONDITION_FAILED');
   assert.equal(effects, 105);
+});
+
+test('restored trackers allocate distinct IDs even when the clock has not advanced', () => {
+  const tracker = createExecutionTracker({ now: () => 5 });
+  const input = { actor: 'agent' as const, goal: 'save', resourceId: 'doc', status: 'active' as const, currentAction: 'save', currentStep: 'write' };
+  const first = tracker.beginSession(input);
+  const restored = createExecutionTracker({ now: () => 5, initial: tracker.getState() });
+  assert.notEqual(restored.beginSession(input).id, first.id);
+});
+
+test('command fingerprints use locale-independent key ordering', async () => {
+  assert.equal(await fingerprintCommand('save', { 'ä': 1, z: 2 }), await hashText('["save",{"z":2,"ä":1}]'));
+});
+
+test('restoring an interrupted blocked task expires its approval and validates nested records', () => {
+  const tracker = createExecutionTracker();
+  const session = tracker.beginSession({ actor: 'agent', goal: 'delete', resourceId: 'doc', status: 'active', currentAction: 'delete', currentStep: 'approval' });
+  const task = tracker.createTask({ sessionId: session.id, actionName: 'delete', resourceId: 'doc', status: 'blocked', title: 'delete', message: 'approval', progressPercent: 0 });
+  tracker.createApproval({ sessionId: session.id, taskId: task.id, actionName: 'delete', resourceId: 'doc', status: 'requested', title: 'delete', riskSummary: 'delete', inputSummary: 'doc', createdBy: 'agent', payload: { retained: true } });
+  const state = tracker.getState();
+  const restored = createExecutionTracker({ initial: state }).getState();
+  assert.equal(restored.tasks[0].status, 'failed');
+  assert.equal(restored.approvals[0].status, 'expired');
+  assert.deepEqual(restored.approvals[0].payload, { retained: true });
+  for (const broken of [
+    { ...state, sessions: [state.sessions[0], state.sessions[0]] },
+    { ...state, latestSessionId: 'missing' },
+    { ...state, tasks: [{ ...state.tasks[0], progressPercent: 200 }] },
+    { ...state, approvals: [{ ...state.approvals[0], payload: 'invalid' }] },
+    { ...state, approvals: [{ ...state.approvals[0], taskId: 'missing' }] },
+    { ...state, sessions: [{ ...state.sessions[0], lastError: { code: 'forged', message: '', retryable: false } }] },
+  ]) assert.throws(() => parseExecutionState(broken));
+  tracker.replaceState(state);
+  assert.equal(tracker.getState().tasks[0].status, 'failed');
+});
+
+test('terminal tasks cannot restart and known operation errors retain their code and details', async () => {
+  const tracker = createExecutionTracker();
+  const session = tracker.beginSession({ actor: 'human', goal: 'write', resourceId: 'doc', status: 'active', currentAction: 'write', currentStep: 'write' });
+  const task = tracker.createTask({ sessionId: session.id, actionName: 'write', resourceId: 'doc', status: 'running', title: 'write', message: '', progressPercent: 0 });
+  tracker.updateTask(task.id, { status: 'succeeded' });
+  assert.throws(() => tracker.updateTask(task.id, { status: 'running' }), /非法任务/);
+  const execute = createCommandExecutor(tracker, async () => {});
+  const result = await execute('partial', 'write', {}, async () => { throw { code: 'PARTIAL_SIDE_EFFECT', message: 'saved', retryable: false, details: { retained: true } }; });
+  assert.equal(result.error?.code, 'PARTIAL_SIDE_EFFECT');
+  assert.equal(result.error?.details?.retained, true);
+  const later = await execute('later', 'write', {}, async () => ({ ok: true }));
+  assert.equal(later.ok, true);
 });

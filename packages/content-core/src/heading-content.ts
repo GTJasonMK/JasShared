@@ -1,11 +1,15 @@
+import { unified } from "unified";
+import remarkParse from "remark-parse";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import { toHast } from "mdast-util-to-hast";
+
 export interface HeadingItem {
   id: string;
   text: string;
   level: number;
 }
 
-const HEADING_REGEX = /^(#{2,4})\s+(.+)$/gm;
-const FENCE_REGEX = /^(`{3,}|~{3,})/;
 const FALLBACK_HEADING_ID = "section";
 
 export function generateHeadingId(text: string): string {
@@ -21,59 +25,56 @@ export function generateHeadingId(text: string): string {
 
 export function createHeadingIdResolver(): (text: string) => string {
   const headingIdCounts = new Map<string, number>();
+  const used = new Set<string>();
 
   return (text: string) => {
     const baseId = generateHeadingId(text);
-    const current = headingIdCounts.get(baseId) || 0;
+    let current = headingIdCounts.get(baseId) || 0;
+    let id = current === 0 ? baseId : `${baseId}-${current}`;
+    while (used.has(id)) id = `${baseId}-${++current}`;
     headingIdCounts.set(baseId, current + 1);
-    return current === 0 ? baseId : `${baseId}-${current}`;
+    used.add(id);
+    return id;
   };
 }
 
-function collectVisibleLines(content: string): string[] {
-  const visibleLines: string[] = [];
-  let inFence = false;
-  let fenceChar = "";
+interface HeadingNode {
+  type: string;
+  tagName?: string;
+  value?: string;
+  children?: HeadingNode[];
+  properties?: Record<string, unknown>;
+}
+const text = (node: HeadingNode): string => node.type === "text" ? node.value ?? "" : (node.children ?? []).map(text).join("");
 
-  for (const line of content.split(/\r?\n/)) {
-    const trimmed = line.trimStart();
-    const fenceMatch = trimmed.match(FENCE_REGEX);
-
-    if (fenceMatch) {
-      const currentFenceChar = fenceMatch[1][0];
-      if (!inFence) {
-        inFence = true;
-        fenceChar = currentFenceChar;
-      } else if (currentFenceChar === fenceChar) {
-        inFence = false;
-        fenceChar = "";
+export function assignContentHeadingIds(tree: HeadingNode, idPrefix = ""): HeadingItem[] {
+  const resolve = createHeadingIdResolver();
+  const headings: HeadingItem[] = [];
+  const reserved = new Set<string>();
+  const reserve = (node: HeadingNode) => {
+    if (typeof node.properties?.id === "string") reserved.add(node.properties.id);
+    node.children?.forEach(reserve);
+  };
+  reserve(tree);
+  const visit = (node: HeadingNode, inFootnotes = false) => {
+    const footnotes = inFootnotes || Boolean(node.properties?.dataFootnotes);
+    if (node.tagName && /^h[1-4]$/.test(node.tagName)) {
+      const label = text(node);
+      if (!node.properties?.id) {
+        let id = idPrefix + resolve(label);
+        while (reserved.has(id)) id = idPrefix + resolve(label);
+        node.properties = { ...node.properties, id };
       }
-      continue;
+      if (node.tagName !== "h1" && !footnotes) headings.push({ id: String(node.properties.id), text: label, level: Number(node.tagName[1]) });
     }
-
-    if (!inFence) {
-      visibleLines.push(line);
-    }
-  }
-
-  return visibleLines;
+    node.children?.forEach((child) => visit(child, footnotes));
+  };
+  visit(tree);
+  return headings;
 }
 
+const parser = unified().use(remarkParse).use(remarkGfm).use(remarkMath);
+
 export function extractHeadingsFromContent(content: string): HeadingItem[] {
-  const resolveHeadingId = createHeadingIdResolver();
-  const source = collectVisibleLines(content).join("\n");
-  const headings: HeadingItem[] = [];
-  let match: RegExpExecArray | null;
-
-  while ((match = HEADING_REGEX.exec(source)) !== null) {
-    const level = match[1].length;
-    const text = match[2].trim();
-    headings.push({
-      id: resolveHeadingId(text),
-      text,
-      level,
-    });
-  }
-
-  return headings;
+  return assignContentHeadingIds(toHast(parser.parse(content)));
 }

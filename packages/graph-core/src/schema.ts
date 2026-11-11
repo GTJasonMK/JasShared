@@ -4,9 +4,6 @@ export const GRAPH_SCHEMA_VERSION = "1.0.0";
 export const KNOWLEDGE_PROFILE_ID = "knowledge.v1";
 export const CODE_PROFILE_ID = "code.v1";
 export type GraphProfileId = string;
-export type GraphEntityKind = "resource" | "concept" | "event" | "actor" | "artifact";
-export type GraphRecordOrigin = string;
-export type EdgeRelation = string;
 
 export const NODE_COLORS = {
   default: { bg: "#FDFBF8", border: "#DDD5CB", text: "#3D3329" },
@@ -19,7 +16,6 @@ export const NODE_COLORS = {
   pink: { bg: "#FDF2F8", border: "#F9A8D4", text: "#9D174D" },
 } as const;
 export type NodeColor = keyof typeof NODE_COLORS;
-export const nodeColorConfig = NODE_COLORS;
 
 export const EDGE_IMPORTANCE_RANKS = ["p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9"] as const;
 export type EdgeImportance = (typeof EDGE_IMPORTANCE_RANKS)[number];
@@ -38,9 +34,8 @@ export const EDGE_COLORS: Record<EdgeColor, { stroke: string; label: string; des
   p8: { stroke: "#3B82F6", label: "P8 参考", description: "参考信息/旁支内容" },
   p9: { stroke: "#8B5CF6", label: "P9 可忽略", description: "低优先级内容" },
 };
-export const edgeColorConfig = EDGE_COLORS;
 
-const nonempty = z.string().refine((value) => value.trim().length > 0, "必须为非空字符串");
+const nonempty = z.string().min(1).regex(/\S/, "必须为非空字符串");
 const nodeColor = z.enum(Object.keys(NODE_COLORS) as [NodeColor, ...NodeColor[]]);
 const edgeColor = z.enum(["default", ...EDGE_IMPORTANCE_RANKS]);
 const evidence = z.object({ path: z.string(), startLine: z.number().optional(), endLine: z.number().optional(), note: z.string().optional() });

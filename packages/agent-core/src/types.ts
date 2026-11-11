@@ -1,45 +1,21 @@
+import type { z } from "zod";
+import type { agentApprovalSchema, agentErrorSchema, agentEventSchema, agentRequestSchema, agentResultSchema, agentSessionSchema, agentTaskSchema, executionStateSchema } from "./schemas";
 export const AGENT_PROTOCOL_VERSION = 1;
-export type AgentActor = "human" | "agent" | "supervisor" | "system";
-export type AgentSessionStatus = "planned" | "active" | "paused" | "finished" | "taken_over" | "aborted";
-export type AgentTaskStatus = "pending" | "running" | "blocked" | "succeeded" | "failed" | "cancelled";
-export type AgentApprovalStatus = "requested" | "approved" | "rejected" | "expired";
-export type AgentEventLevel = "info" | "warning" | "error";
-export type AgentErrorCode = "VALIDATION_FAILED" | "INVALID_INPUT" | "PRECONDITION_FAILED" | "RESOURCE_NOT_FOUND" | "CONCURRENCY_CONFLICT" | "EXTERNAL_FAILURE" | "APPROVAL_REQUIRED" | "APP_UNAVAILABLE" | "PARTIAL_SIDE_EFFECT" | "OUTCOME_UNKNOWN";
-export interface AgentError { code: AgentErrorCode; message: string; retryable: boolean; details?: Record<string, unknown> }
-export interface AgentEventRecord {
-  id: string; type: string; level: AgentEventLevel; message: string; timestamp: number;
-  sessionId?: string; taskId?: string; approvalId?: string; resourceId?: string;
-  actor?: AgentActor; actorId?: string; data?: Record<string, unknown>;
-}
-export interface AgentTaskRecord {
-  id: string; sessionId: string; actionName: string; resourceId: string; status: AgentTaskStatus;
-  title: string; message: string; progressPercent: number; createdAt: number; updatedAt: number;
-  completedAt?: number; inputSummary?: string; outputSummary?: string; error?: AgentError;
-}
-export interface AgentApprovalRecord {
-  id: string; sessionId: string; taskId: string; actionName: string; resourceId: string; status: AgentApprovalStatus;
-  title: string; riskSummary: string; inputSummary: string; createdBy: AgentActor; createdById?: string;
-  createdAt: number; updatedAt: number; resolvedBy?: AgentActor; resolvedById?: string; resolutionReason?: string;
-  payload?: Record<string, unknown>;
-}
-export interface AgentSessionRecord {
-  id: string; goal: string; resourceId: string; actor: AgentActor; actorId?: string; status: AgentSessionStatus;
-  currentAction: string; currentStep: string; createdAt: number; updatedAt: number; endedAt?: number;
-  taskId?: string; approvalId?: string; lastError?: AgentError;
-}
-export interface AgentResult<T = unknown> {
-  ok: boolean; data?: T; task?: AgentTaskRecord | null; approval?: AgentApprovalRecord | null;
-  events?: AgentEventRecord[]; error?: AgentError;
-}
-export interface AgentRequestRecord {
-  id: string; name: string; fingerprint: string; status: "running" | "finished" | "unknown" | "archived";
-  createdAt: number; result?: AgentResult;
-}
-export interface AgentExecutionState {
-  protocolVersion: 1; latestSessionId: string | null;
-  sessions: AgentSessionRecord[]; tasks: AgentTaskRecord[]; approvals: AgentApprovalRecord[];
-  events: AgentEventRecord[]; requests: AgentRequestRecord[];
-}
+export type AgentActor = AgentSessionRecord["actor"];
+export type AgentSessionStatus = AgentSessionRecord["status"];
+export type AgentTaskStatus = AgentTaskRecord["status"];
+export type AgentApprovalStatus = AgentApprovalRecord["status"];
+export type AgentEventLevel = AgentEventRecord["level"];
+export const AGENT_ERROR_CODES = ["VALIDATION_FAILED", "INVALID_INPUT", "PRECONDITION_FAILED", "RESOURCE_NOT_FOUND", "CONCURRENCY_CONFLICT", "EXTERNAL_FAILURE", "APPROVAL_REQUIRED", "APP_UNAVAILABLE", "PARTIAL_SIDE_EFFECT", "OUTCOME_UNKNOWN"] as const;
+export type AgentErrorCode = (typeof AGENT_ERROR_CODES)[number];
+export type AgentError = z.infer<typeof agentErrorSchema>;
+export type AgentEventRecord = z.infer<typeof agentEventSchema>;
+export type AgentTaskRecord = z.infer<typeof agentTaskSchema>;
+export type AgentApprovalRecord = z.infer<typeof agentApprovalSchema>;
+export type AgentSessionRecord = z.infer<typeof agentSessionSchema>;
+export type AgentResult<T = unknown> = Omit<z.infer<typeof agentResultSchema>, "data"> & { data?: T };
+export type AgentRequestRecord = z.infer<typeof agentRequestSchema>;
+export type AgentExecutionState = z.infer<typeof executionStateSchema>;
 export interface AgentToolSchema {
   name: string; kind: "query" | "action" | "approval" | "task"; goal: string; description: string;
   inputSchema: Record<string, unknown>; outputSchema: Record<string, unknown>;
