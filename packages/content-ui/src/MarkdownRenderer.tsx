@@ -7,9 +7,11 @@ import rehypeKatex from "rehype-katex";
 import { MermaidDiagram } from "./MermaidDiagram";
 import { resolveImageDimensions } from "./imageDimensions";
 import { extractText } from "./text";
-import { createHeadingIdResolver } from "@jas/content-core/heading-content";
 import { preprocessAlerts } from "@jas/content-core/preprocess-alerts";
 import { useContentHost } from "./ContentHost";
+import { GraphBlock } from "./GraphBlock";
+import { parseGraphData } from "@jas/graph-core";
+import { assignHeadingIds } from "./headingIds";
 
 export interface MarkdownLinkProps {
   href?: string;
@@ -259,6 +261,10 @@ function CodeBlock({ children }: { children?: ReactNode }) {
       </div>
     );
   }
+  if (language === "graph") {
+    try { return <div className="my-8 not-prose"><GraphBlock data={parseGraphData(JSON.parse(code.trim()))} /></div>; }
+    catch (error) { return <div><p role="alert" className="text-red-700">{error instanceof Error ? error.message : String(error)}</p><pre>{children}</pre></div>; }
+  }
 
   // 普通代码块
   return (
@@ -273,7 +279,7 @@ function CodeBlock({ children }: { children?: ReactNode }) {
 interface MarkdownRendererProps {
   content: string;
   renderLink?: MarkdownLinkRenderer;
-  resolveHeadingId?: (text: string) => string;
+  idPrefix?: string;
 }
 
 function renderDefaultMarkdownLink({ href, children, ...props }: MarkdownLinkProps) {
@@ -291,35 +297,34 @@ function renderDefaultMarkdownLink({ href, children, ...props }: MarkdownLinkPro
   );
 }
 
-export function MarkdownRenderer({ content, renderLink, resolveHeadingId: providedResolver }: MarkdownRendererProps) {
+export function MarkdownRenderer({ content, renderLink, idPrefix = "" }: MarkdownRendererProps) {
   const host = useContentHost();
   const linkRenderer = renderLink ?? host.renderLink;
   const processed = preprocessAlerts(content);
-  const resolveHeadingId = providedResolver ?? createHeadingIdResolver();
 
   return (
     <div className="jas-content prose-chinese"><Markdown
       remarkPlugins={[remarkGfm, remarkMath]}
-      rehypePlugins={[rehypeHighlight, rehypeKatex]}
+      rehypePlugins={[[assignHeadingIds, { idPrefix }], rehypeHighlight, rehypeKatex]}
       components={{
         // 标题
-        h1: ({ children, ...props }) => (
-          <Heading headingId={resolveHeadingId(extractText(children))} level={1} {...props}>
+        h1: ({ id, node: _node, children, ...props }) => (
+          <Heading headingId={id!} level={1} {...props}>
             {children}
           </Heading>
         ),
-        h2: ({ children, ...props }) => (
-          <Heading headingId={resolveHeadingId(extractText(children))} level={2} {...props}>
+        h2: ({ id, node: _node, children, ...props }) => (
+          <Heading headingId={id!} level={2} {...props}>
             {children}
           </Heading>
         ),
-        h3: ({ children, ...props }) => (
-          <Heading headingId={resolveHeadingId(extractText(children))} level={3} {...props}>
+        h3: ({ id, node: _node, children, ...props }) => (
+          <Heading headingId={id!} level={3} {...props}>
             {children}
           </Heading>
         ),
-        h4: ({ children, ...props }) => (
-          <Heading headingId={resolveHeadingId(extractText(children))} level={4} {...props}>
+        h4: ({ id, node: _node, children, ...props }) => (
+          <Heading headingId={id!} level={4} {...props}>
             {children}
           </Heading>
         ),
