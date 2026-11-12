@@ -5,7 +5,7 @@
 @import "./photography.css";
 @source "./";
 @source "./roadmap-ui.ts";
-.jas-content { min-width: 0; }
+.jas-content { min-width: 0; overflow-wrap: anywhere; }
 .jas-content {
   --color-ink: #2c2c2c;
   --color-ink-light: #4a4a4a;
