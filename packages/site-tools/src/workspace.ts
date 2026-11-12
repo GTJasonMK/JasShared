@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { CONTENT_DIRS, parseMarkdownContent, parseSiteConfig, parsePhotos, readPublication, validPageSlug, type SiteConfig, type Photo, type JasBlogContentType } from "@jas/content-core";
+import { assertNoteCategoryReferences, CONTENT_DIRS, parseMarkdownContent, parseSiteConfig, parsePhotos, readPublication, validPageSlug, type SiteConfig, type Photo, type JasBlogContentType, type NoteMetadata, type SiteWorkspaceData } from "@jas/content-core";
 import { fileVersion, markdownFiles, workspaceFile } from "./files";
 
 export const SITE_FILE = "content/site.json";
@@ -33,15 +33,17 @@ function readWorkspace(root: string) {
   const all = workspaceDocuments(root);
   const documents = Object.fromEntries(all.map((item) => [item.relative.replace(/\\/g, "/"), readPublication(item.metadata.publication)]));
   const pages = all.filter((item) => item.type === "page").map((item) => ({ slug: item.slug, title: (item.metadata as { title: string }).title, publication: documents[item.relative.replace(/\\/g, "/")] }));
+  const notes = all.filter((item) => item.type === "note").map((item) => ({ path: item.relative.replace(/\\/g, "/"), title: (item.metadata as NoteMetadata).title, category: (item.metadata as NoteMetadata).category, publication: documents[item.relative.replace(/\\/g, "/")] }));
   const slugs = new Set(pages.map((item) => item.slug));
   for (const item of site.navigation) if (item.target.startsWith("page:") && !slugs.has(item.target.slice(5))) throw new Error(`导航引用了不存在的独立页面：${item.target.slice(5)}`);
-  return { data: { site, photos, pages, documents, siteVersion: fileVersion(workspaceFile(root, SITE_FILE)), photoVersion: fileVersion(workspaceFile(root, PHOTO_FILE)) }, all };
+  return { data: { site, photos, pages, notes, documents, siteVersion: fileVersion(workspaceFile(root, SITE_FILE)), photoVersion: fileVersion(workspaceFile(root, PHOTO_FILE)) }, all };
 }
 
-export function loadWorkspace(root: string) { return readWorkspace(root).data; }
+export function loadWorkspace(root: string): SiteWorkspaceData { return readWorkspace(root).data; }
 
 export function validateWorkspace(root: string): void {
   const { data, all } = readWorkspace(root);
+  assertNoteCategoryReferences(data.site.noteCategories, data.notes.filter((note) => note.publication === "published"));
   for (const document of all) {
     if (data.documents[document.relative.replace(/\\/g, "/")] === "draft") continue;
     if (document.type === "page" && !validPageSlug(document.slug)) throw new Error(`独立页面地址无效：${document.relative}`);

@@ -14,8 +14,9 @@ export const CONTENT_DIRS: Record<JasBlogContentType, string> = { note: "notes",
 export const CONTENT_TYPE_LABELS: Record<ContentType, string> = { note: "笔记", project: "项目", diary: DIARY_DISPLAY_LABEL, roadmap: "规划", graph: "图谱", page: "独立页面", doc: "文档" };
 export const JASBLOG_SECTION_LABELS: Record<JasBlogContentType, string> = { project: "开源项目", note: "学习笔记", diary: DIARY_DISPLAY_LABEL, graph: "知识图谱", roadmap: "我的规划", page: "独立页面" };
 
-export interface NoteMetadata extends PublicationMetadata { title: string; date: string; excerpt: string; tags?: string[] }
-export interface DiaryMetadata extends NoteMetadata {
+interface TextMetadata extends PublicationMetadata { title: string; date: string; excerpt: string; tags?: string[] }
+export interface NoteMetadata extends TextMetadata { category?: string }
+export interface DiaryMetadata extends TextMetadata {
   time: string;
   mood?: string;
   weather?: string;

@@ -3,6 +3,7 @@ import { parseStringArray, readContentDate, readFrontmatterString } from "./cont
 import { normalizeDiaryTime } from "./diary-contract";
 import { normalizeRoadmapStatus } from "./roadmap-status";
 import { parseDisplay, readPublication } from "./publication";
+import { readNoteCategoryId } from "./note-categories";
 import type { ContentMetadata, ContentType, LineEnding, TechStackItem } from "./types";
 
 export { parseRoadmapItemsFromContent } from "./roadmap-content";
@@ -46,7 +47,7 @@ export function normalizeContentMetadata(fields: Record<string, unknown>, type: 
   const date = field("date", readContentDate, undefined);
   let metadata: ContentMetadata;
   switch (type) {
-    case "note": metadata = { title: text("title") ?? "", date: date ?? "", excerpt: text("excerpt") ?? "", tags: field("tags", parseStringArray, []) }; break;
+    case "note": metadata = { title: text("title") ?? "", date: date ?? "", excerpt: text("excerpt") ?? "", tags: field("tags", parseStringArray, []), category: field("category", readNoteCategoryId, undefined) }; break;
     case "diary": metadata = {
       title: text("title") ?? "", date: date ?? "", time: field("time", normalizeDiaryTime, ""), excerpt: text("excerpt") ?? "", tags: field("tags", parseStringArray, []),
       mood: text("mood"), weather: text("weather"), location: text("location"), companions: field("companions", parseStringArray, []),

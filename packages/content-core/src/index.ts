@@ -16,5 +16,6 @@ export * from "./filename";
 export * from "./paths";
 export * from "./publication";
 export * from "./site";
+export * from "./note-categories";
 export * from "./photography";
 export * from "./site-operations";

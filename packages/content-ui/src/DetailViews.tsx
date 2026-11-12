@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import { calculateRoadmapProgress, contentDisplay, extractHeadingsFromContent, type NoteMetadata, type ProjectMetadata, type RoadmapMetadata, type RoadmapItem, type GraphMetadata, type GraphData } from "@jas/content-core";
+import { calculateRoadmapProgress, contentDisplay, extractHeadingsFromContent, noteCategoryPath, type NoteMetadata, type ProjectMetadata, type RoadmapMetadata, type RoadmapItem, type GraphMetadata, type GraphData } from "@jas/content-core";
 import { ROADMAP_ITEM_STATUS_BADGE_CONFIG, ROADMAP_PRIORITY_CONFIG, ROADMAP_STATUS_BADGE_CONFIG } from "./roadmap-ui";
 import ArticleBody from "./ArticleBody";
 import { ReadingLayout } from "./ReadingLayout";
@@ -22,8 +22,9 @@ export function NoteView({ note, back, comments, onTagSelect, layout = "page" }:
   const host = useContentHost();
   const headings = useMemo(() => layout === "page" ? extractHeadingsFromContent(note.content) : [], [layout, note.content]);
   const display = contentDisplay(note, "note");
+  const categoryPath = noteCategoryPath(host.noteCategories ?? [], note.category);
   return <ReadingLayout back={back} layout={layout} headings={display.toc ? headings : []} header={<>
-    <p className="reading-kicker">{host.sections?.notes.title ?? "学习笔记"}</p>
+    <nav className="reading-kicker note-category-path" aria-label="笔记所属分类"><span>{host.sections?.notes.title ?? "学习笔记"}</span>{categoryPath.map((category) => <span className="note-category-path" key={category.id}><span aria-hidden="true">/</span>{host.noteCategoryHref ? <ContentLink href={host.noteCategoryHref(category.id)}>{category.name}</ContentLink> : <span>{category.name || "未命名分类"}</span>}</span>)}</nav>
     {note.date && <time className="text-sm text-[var(--color-text-muted)]">{note.date}</time>}
     <h1>{note.title}</h1>
     <Issue error={note.error} />

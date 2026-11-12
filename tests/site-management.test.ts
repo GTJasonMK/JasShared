@@ -6,7 +6,7 @@ import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { SECTION_IDS, parseSiteConfig, visibleNavigation, readPublication, normalizeContentMetadata, createContentDraft, parseMarkdownContent, serializeContentDocument, type SiteConfig } from "../packages/content-core/src/index";
 import { atomicWrite, fileVersion, withWorkspaceLock, writeVersioned } from "../packages/site-tools/src/files";
-import { readSite, loadWorkspace, validateWorkspace, PHOTO_FILE } from "../packages/site-tools/src/workspace";
+import { readSite, loadWorkspace, validateWorkspace, PHOTO_FILE, SITE_FILE } from "../packages/site-tools/src/workspace";
 import { migrateWorkspace } from "../packages/site-tools/src/migrate";
 import { finalizeExport, prepareExport } from "../packages/site-tools/src/export";
 import { savePhotos, recoverMediaCleanup } from "../packages/site-tools/src/media";
@@ -15,7 +15,7 @@ import { runCommand, type CommandRunner } from "../packages/site-tools/src/proce
 import { migrateSiteConfig } from "../packages/content-core/src/site-migration";
 
 function site(): SiteConfig {
-  return { name: "Synthetic site", description: "Synthetic description", footer: "Synthetic author", home: { motto: "Synthetic", description: "" }, sections: Object.fromEntries(SECTION_IDS.map((id) => [id, { title: id, description: "", enabled: true }])) as SiteConfig["sections"], navigation: [{ target: "home", label: "Home", visible: true }, { target: "notes", label: "Notes", visible: true }], comments: { enabled: false, repo: "", repoId: "", category: "", categoryId: "" } };
+  return { name: "Synthetic site", description: "Synthetic description", footer: "Synthetic author", home: { motto: "Synthetic", description: "" }, sections: Object.fromEntries(SECTION_IDS.map((id) => [id, { title: id, description: "", enabled: true }])) as SiteConfig["sections"], navigation: [{ target: "home", label: "Home", visible: true }, { target: "notes", label: "Notes", visible: true }], noteCategories: [], comments: { enabled: false, repo: "", repoId: "", category: "", categoryId: "" } };
 }
 function workspace() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "jas-site-"));
@@ -355,4 +355,36 @@ test("explicit workflow retry resumes the same source commit", async () => {
     assert.equal(result.phase, "complete"); assert.equal(result.sourceSha, committed); assert.equal(retried, true);
     assert.equal(git(fixture.root, "rev-list", "--count", "HEAD"), "2");
   } finally { fixture.cleanup(); }
+});
+
+test("笔记分类摘要包含草稿，保存分类前保护文档引用，发布时拒绝悬空分类", () => {
+  const root = workspace();
+  const config = site();
+  config.noteCategories = [{ id: "math", name: "数学" }, { id: "calculus", name: "高等数学", parentId: "math" }];
+  const cli = path.resolve("packages/site-tools/src/cli.ts");
+  const loader = path.resolve("node_modules/tsx/dist/loader.mjs");
+  try {
+    write(root, SITE_FILE, JSON.stringify(config));
+    const original = "---\npublication: draft\ntitle: 学习文档\ncategory: calculus\n---\n保留正文\n";
+    write(root, "content/notes/example.md", original);
+    assert.deepEqual(loadWorkspace(root).notes, [{ path: "content/notes/example.md", title: "学习文档", publication: "draft", category: "calculus" }]);
+    const before = fs.readFileSync(path.join(root, SITE_FILE), "utf8");
+    const input = { site: { ...config, noteCategories: [] }, expectedVersion: fileVersion(path.join(root, SITE_FILE)), stateDirectory: path.join(root, ".run") };
+    assert.throws(() => execFileSync(process.execPath, ["--import", loader, cli, "save_site"], { cwd: root, input: JSON.stringify(input), encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }), (error: unknown) => {
+      assert.match(String((error as { stdout: string }).stdout), /example\.md.*calculus/);
+      return true;
+    });
+    assert.equal(fs.readFileSync(path.join(root, SITE_FILE), "utf8"), before);
+    const renamed = { ...config, noteCategories: config.noteCategories.map((category) => category.id === "calculus" ? { ...category, name: "微积分" } : category) };
+    const saved = JSON.parse(execFileSync(process.execPath, ["--import", loader, cli, "save_site"], { cwd: root, input: JSON.stringify({ ...input, site: renamed }), encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }));
+    assert.equal(saved.type, "result");
+    assert.equal(saved.protocol, 2);
+    assert.equal(readSite(root).noteCategories[1].name, "微积分");
+    assert.equal(fs.readFileSync(path.join(root, "content/notes/example.md"), "utf8"), original);
+    write(root, SITE_FILE, JSON.stringify({ ...config, noteCategories: [] }));
+    assert.doesNotThrow(() => loadWorkspace(root));
+    assert.doesNotThrow(() => validateWorkspace(root));
+    write(root, "content/notes/example.md", original.replace("publication: draft", "publication: published"));
+    assert.throws(() => validateWorkspace(root), /example\.md.*calculus/);
+  } finally { fs.rmSync(root, { recursive: true }); }
 });

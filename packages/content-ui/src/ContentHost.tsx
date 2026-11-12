@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useSyncExternalStore, type ComponentType, type ImgHTMLAttributes, type ReactNode } from "react";
 import type { MarkdownLinkProps } from "./MarkdownRenderer";
-import type { JasBlogContentType, SiteConfig } from "@jas/content-core";
+import type { JasBlogContentType, NoteCategory, SiteConfig } from "@jas/content-core";
 
 export type PreviewLayout = "page" | "pane";
 export interface ContentHost {
@@ -13,6 +13,8 @@ export interface ContentHost {
   sections?: SiteConfig["sections"];
   section?: keyof SiteConfig["sections"];
   commentsEnabled?: boolean;
+  noteCategories?: readonly NoteCategory[];
+  noteCategoryHref?: (id: string) => string;
   contentHref?: (type: JasBlogContentType, slug: string) => string;
   tagHref?: (tag: string) => string;
   renderLink?: (props: MarkdownLinkProps, renderDefault: (props: MarkdownLinkProps) => ReactNode) => ReactNode;

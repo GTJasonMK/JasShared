@@ -1,12 +1,13 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { getTagOptions, resolveDiaryFilter, type JasBlogContentType, type NoteListEntry, type ProjectListEntry, type GraphListEntry, type RoadmapListEntry, type DiaryListEntry } from "@jas/content-core";
+import { filterNotesByCategory, getTagOptions, resolveDiaryFilter, UNCATEGORIZED_NOTES, type JasBlogContentType, type NoteListEntry, type ProjectListEntry, type GraphListEntry, type RoadmapListEntry, type DiaryListEntry } from "@jas/content-core";
 import { ROADMAP_STATUS_BADGE_CONFIG } from "./roadmap-ui";
 import { ContentLink } from "./ContentLink";
 import { BackToTop } from "./BackToTop";
 import { useContentHost } from "./ContentHost";
 import { ContentCover } from "./PageView";
+import { NoteCategoryNavigation } from "./NoteCategoryNavigation";
 
 export function SectionTitle({ children, subtitle, level = 2 }: { children: ReactNode; subtitle?: string; level?: 1 | 2 }) {
   const Heading = level === 1 ? "h1" : "h2";
@@ -37,13 +38,19 @@ export function NoteCard({ note, onOpen, selected }: { note: NoteListEntry; onOp
   </Card>;
 }
 
-export function NotesListView({ items, selectedTag = "", onTagChange, onOpen, selectedSlug }: { items: NoteListEntry[]; selectedTag?: string; onTagChange: (tag: string) => void; onOpen?: (slug: string) => void; selectedSlug?: string }) {
-  const tags = getTagOptions(items);
+export function NotesListView({ items, selectedTag = "", selectedCategory = "", onTagChange, onCategoryChange, onOpen, selectedSlug }: { items: NoteListEntry[]; selectedTag?: string; selectedCategory?: string; onTagChange: (tag: string) => void; onCategoryChange: (id: string) => void; onOpen?: (slug: string) => void; selectedSlug?: string }) {
+  const categories = useContentHost().noteCategories ?? [];
+  const categoryItems = filterNotesByCategory(items, categories, selectedCategory);
+  const unknown = !!selectedCategory && selectedCategory !== UNCATEGORIZED_NOTES && !categories.some(({ id }) => id === selectedCategory);
+  const tags = getTagOptions(categoryItems);
   const selected = tags.includes(selectedTag) ? selectedTag : "";
-  const filtered = selected ? items.filter((item) => item.tags.includes(selected)) : items;
+  const filtered = selected ? categoryItems.filter((item) => item.tags.includes(selected)) : categoryItems;
   return <ListLayout title="学习笔记" subtitle="记录学习过程中的收获与思考">
+    <NoteCategoryNavigation categories={categories} selected={selectedCategory} onChange={onCategoryChange} />
+    {unknown ? <div className="py-12 text-center"><p role="alert" className="text-[var(--color-text-muted)]">这个分类不存在。</p><button type="button" className="tag mt-4" onClick={() => onCategoryChange("")}>查看全部笔记</button></div> : <>
     {tags.length > 0 && <div className="mb-8 flex flex-wrap gap-2">{["", ...tags].map((tag) => <button key={tag} type="button" aria-pressed={selected === tag} onClick={() => onTagChange(tag)} className="tag">{tag || "全部"}</button>)}</div>}
-    {filtered.length ? <div className="grid gap-6">{filtered.map((note) => <NoteCard key={note.slug} note={note} selected={note.slug === selectedSlug} onOpen={onOpen ? () => onOpen(note.slug) : undefined} />)}</div> : <Empty>{selected ? `未找到标签 "${selected}" 的文章。` : "暂无笔记。"}</Empty>}
+    {filtered.length ? <div className="grid gap-6">{filtered.map((note) => <NoteCard key={note.slug} note={note} selected={note.slug === selectedSlug} onOpen={onOpen ? () => onOpen(note.slug) : undefined} />)}</div> : <Empty>{selected ? `未找到标签 "${selected}" 的文章。` : selectedCategory ? "这个分类下暂无笔记。" : "暂无笔记。"}</Empty>}
+    </>}
   </ListLayout>;
 }
 

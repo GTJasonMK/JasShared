@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { parseSiteConfig } from "@jas/content-core";
+import { assertNoteCategoryReferences, parseSiteConfig } from "@jas/content-core";
 import { editorStateDirectory, withWorkspaceLock, workspaceFile, writeVersioned } from "./files";
 import { loadWorkspace, readSite, SITE_FILE } from "./workspace";
 import { importImage, importPhoto, savePhotos, recoverMediaCleanup } from "./media";
@@ -8,7 +8,7 @@ import { finalizeExport, prepareExport } from "./export";
 import { migrateWorkspace } from "./migrate";
 import { inspectPublication, publicationState, publishWorkspace } from "./publish";
 
-export const TOOL_PROTOCOL = 1;
+export const TOOL_PROTOCOL = 2;
 const output = (value: unknown) => process.stdout.write(JSON.stringify(value) + "\n");
 
 async function main() {
@@ -17,7 +17,7 @@ async function main() {
   const root = fs.realpathSync(process.cwd());
   if (command === "prepare") { prepareExport(root); return; }
   if (command === "finalize") { finalizeExport(root); return; }
-  if (command === "version") { output({ protocol: TOOL_PROTOCOL, version: "0.5.0" }); return; }
+  if (command === "version") { output({ protocol: TOOL_PROTOCOL, version: "0.6.0" }); return; }
   const raw = process.stdin.isTTY ? "" : fs.readFileSync(0, "utf8");
   const input: Record<string, unknown> = raw.trim() ? JSON.parse(raw) : {};
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("命令输入必须为对象。");
@@ -31,8 +31,10 @@ async function main() {
     }
     case "save_site": result = await withWorkspaceLock(root, () => {
       const site = parseSiteConfig(input.site);
-      const pages = new Set(loadWorkspace(root).pages.map((item) => item.slug));
+      const workspace = loadWorkspace(root);
+      const pages = new Set(workspace.pages.map((item) => item.slug));
       for (const item of site.navigation) if (item.target.startsWith("page:") && !pages.has(item.target.slice(5))) throw new Error("导航引用了不存在的独立页面。");
+      assertNoteCategoryReferences(site.noteCategories, workspace.notes);
       return writeVersioned(workspaceFile(root, SITE_FILE), site, text("expectedVersion"));
     }); break;
     case "save_photos": result = await savePhotos(root, input.photos, text("expectedVersion")); break;
