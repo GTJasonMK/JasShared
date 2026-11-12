@@ -101,23 +101,6 @@ tags: [tauri, markdown]
       ],
     },
     {
-      id: "project-tech-stack-string",
-      title: "逗号分隔技术栈",
-      description:
-        "如果你只是想快速起稿，也可以先把 `techStack` 写成逗号分隔字符串，解析器会自动拆分。",
-      code: `---
-publication: draft
-name: JasBlogEditor
-description: 面向 JasBlog 的本地编辑器
-github: https://github.com/your-name/JasBlogEditor
-techStack: React, Tauri, TypeScript
----`,
-      notes: [
-        "这是兼容写法，适合先把项目信息写出来；长期维护更推荐结构化数组，便于补 icon 和 color。",
-        "拆分后会按技术名生成标签，但不会自动补图标或颜色等附加字段。",
-      ],
-    },
-    {
       id: "project-no-demo",
       title: "无 demo 的项目写法",
       description:

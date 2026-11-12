@@ -27,27 +27,27 @@ export function workspaceDocuments(root: string) {
   }));
 }
 
-export function loadWorkspace(root: string) {
+function readWorkspace(root: string) {
   const site = readSite(root);
   const photos = readPhotos(root);
   const all = workspaceDocuments(root);
-  const pages = all.filter((item) => item.type === "page").map((item) => ({ slug: item.slug, title: (item.metadata as { title: string }).title, publication: readPublication(item.frontmatterRaw.publication) }));
-  const documents = Object.fromEntries(all.map((item) => [item.relative.replace(/\\/g, "/"), readPublication(item.frontmatterRaw.publication)]));
+  const documents = Object.fromEntries(all.map((item) => [item.relative.replace(/\\/g, "/"), readPublication(item.metadata.publication)]));
+  const pages = all.filter((item) => item.type === "page").map((item) => ({ slug: item.slug, title: (item.metadata as { title: string }).title, publication: documents[item.relative.replace(/\\/g, "/")] }));
   const slugs = new Set(pages.map((item) => item.slug));
   for (const item of site.navigation) if (item.target.startsWith("page:") && !slugs.has(item.target.slice(5))) throw new Error(`导航引用了不存在的独立页面：${item.target.slice(5)}`);
-  return { site, photos, pages, documents, siteVersion: fileVersion(workspaceFile(root, SITE_FILE)), photoVersion: fileVersion(workspaceFile(root, PHOTO_FILE)) };
+  return { data: { site, photos, pages, documents, siteVersion: fileVersion(workspaceFile(root, SITE_FILE)), photoVersion: fileVersion(workspaceFile(root, PHOTO_FILE)) }, all };
 }
 
+export function loadWorkspace(root: string) { return readWorkspace(root).data; }
+
 export function validateWorkspace(root: string): void {
-  const { site } = loadWorkspace(root);
-  for (const document of workspaceDocuments(root)) {
-    if (readPublication(document.frontmatterRaw.publication) === "draft") continue;
+  const { data, all } = readWorkspace(root);
+  for (const document of all) {
+    if (data.documents[document.relative.replace(/\\/g, "/")] === "draft") continue;
     if (document.type === "page" && !validPageSlug(document.slug)) throw new Error(`独立页面地址无效：${document.relative}`);
     if (document.type === "page" && !(document.metadata as { title: string }).title.trim()) throw new Error(`独立页面必须填写标题：${document.relative}`);
     if (document.issues.length) throw new Error(`${document.relative}：${document.issues.join("；")}`);
-    readPublication(document.metadata.publication);
     const cover = document.metadata.display?.cover;
     if (cover?.src.startsWith("/")) workspaceFile(root, `public${cover.src}`);
   }
-  parseSiteConfig(site);
 }

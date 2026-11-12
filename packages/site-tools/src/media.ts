@@ -2,12 +2,24 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
-import { parsePhotos, type Photo, type PhotoImage, type CoverImage } from "@jas/content-core";
+import { isLocalAsset, parsePhotos, type Photo, type PhotoImage, type CoverImage } from "@jas/content-core";
 import { atomicWrite, fileVersion, withWorkspaceLock, workspaceFile, writeVersioned } from "./files";
 import { PHOTO_FILE, readPhotos, workspaceDocuments } from "./workspace";
 
 export interface ImportPhotoOptions { inputPath: string; title: string; alt?: string; id?: string; category?: string; takenAt?: string; location?: string; camera?: string; root?: string; requestId?: string }
 interface ImportCheckpoint { signature: string; sourceHash: string; complete: boolean; images: Record<string, { hash: string; width: number; height: number }> }
+const hashPattern = /^[a-f0-9]{64}$/;
+
+function parseImportCheckpoint(value: unknown): ImportCheckpoint {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("图片导入恢复记录无效，已有成果已保留。");
+  const row = value as Record<string, unknown>;
+  if (typeof row.signature !== "string" || !hashPattern.test(row.signature) || typeof row.sourceHash !== "string" || !hashPattern.test(row.sourceHash) || typeof row.complete !== "boolean" || !row.images || typeof row.images !== "object" || Array.isArray(row.images)) throw new Error("图片导入恢复记录无效，已有成果已保留。");
+  for (const [name, value] of Object.entries(row.images)) {
+    const image = value as Record<string, unknown> | null;
+    if (!["full.webp", "640.webp", "960.webp"].includes(name) || !image || typeof image.hash !== "string" || !hashPattern.test(image.hash) || !Number.isSafeInteger(image.width) || (image.width as number) <= 0 || !Number.isSafeInteger(image.height) || (image.height as number) <= 0) throw new Error("图片导入恢复记录包含无效尺寸或指纹，已有成果已保留。");
+  }
+  return row as unknown as ImportCheckpoint;
+}
 
 export async function importPhoto({ inputPath, title, alt, id, requestId, root = process.cwd(), ...details }: ImportPhotoOptions): Promise<Photo> {
   const photoId = id ?? path.parse(inputPath).name.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}_-]+/gu, "-").replace(/^-+|-+$/g, "");
@@ -17,8 +29,8 @@ export async function importPhoto({ inputPath, title, alt, id, requestId, root =
     if (requestId && !/^[A-Za-z0-9_-]{1,80}$/.test(requestId)) throw new Error("导入请求 ID 无效。");
     const journal = requestId ? workspaceFile(root, `.run/import-${requestId}.json`, true) : null;
     const signature = createHash("sha256").update(JSON.stringify({ draft, inputPath: path.resolve(inputPath) })).digest("hex");
-    let checkpoint: ImportCheckpoint | undefined = journal && fs.existsSync(journal) ? JSON.parse(fs.readFileSync(journal, "utf8")) : undefined;
-    if (checkpoint && (checkpoint.signature !== signature || typeof checkpoint.sourceHash !== "string" || !checkpoint.images)) throw new Error("导入请求已绑定其他输入，已有成果已保留。");
+    let checkpoint = journal && fs.existsSync(journal) ? parseImportCheckpoint(JSON.parse(fs.readFileSync(journal, "utf8"))) : undefined;
+    if (checkpoint && checkpoint.signature !== signature) throw new Error("导入请求已绑定其他输入，已有成果已保留。");
     if (checkpoint && fs.existsSync(inputPath) && checkpoint.sourceHash !== fileVersion(inputPath)) throw new Error("导入原片已变化，请创建新的导入请求。");
     const existing = photos.find((photo) => photo.id === photoId);
     if (existing) {
@@ -110,21 +122,24 @@ export async function savePhotos(root: string, input: unknown, expected: string)
 export function recoverMediaCleanup(root: string): void {
   const journal = workspaceFile(root, ".run/media-deletions.json", true);
   if (!fs.existsSync(journal)) return;
-  const record: { expected: string; entries: Array<{ src: string; version: string }> } = JSON.parse(fs.readFileSync(journal, "utf8"));
-  if (typeof record.expected !== "string" || !Array.isArray(record.entries)) throw new Error("素材清理记录无效，已保留所有文件。");
-  if (fileVersion(workspaceFile(root, PHOTO_FILE)) === record.expected) { fs.unlinkSync(journal); return; }
+  const record: unknown = JSON.parse(fs.readFileSync(journal, "utf8"));
+  if (!record || typeof record !== "object" || Array.isArray(record)) throw new Error("素材清理记录无效，已保留所有文件。");
+  const { expected, entries } = record as { expected: unknown; entries: unknown };
+  if (typeof expected !== "string" || !hashPattern.test(expected) || !Array.isArray(entries) || entries.some((entry) => !entry || typeof entry !== "object" || typeof entry.src !== "string" || !entry.src.startsWith("/photography/") || !isLocalAsset(entry.src) || typeof entry.version !== "string" || !hashPattern.test(entry.version))) throw new Error("素材清理记录包含无效路径或指纹，已保留所有文件。");
+  if (fileVersion(workspaceFile(root, PHOTO_FILE)) === expected) { fs.unlinkSync(journal); return; }
   const retained = new Set(readPhotos(root).flatMap((photo) => photo.images.map((image) => image.src)));
-  const references = assetReferences(root, record.entries.filter((entry) => !retained.has(entry.src)).map((entry) => entry.src));
+  const references = assetReferences(root, entries.filter((entry) => !retained.has(entry.src)).map((entry) => entry.src));
   if (references.length) throw new Error(`待清理图片已被引用：${references.join("、")}`);
-  for (const { src, version } of record.entries) {
-    if (typeof src !== "string" || !src.startsWith("/photography/") || typeof version !== "string") throw new Error("素材清理路径无效。");
+  const removable: string[] = [];
+  for (const { src, version } of entries) {
     if (retained.has(src)) continue;
     const file = workspaceFile(root, `public${src}`, true);
     if (!fs.existsSync(file)) continue;
     if (fileVersion(file) !== version) throw new Error(`待清理图片已被修改，已保留：${src}`);
-    fs.unlinkSync(file);
+    removable.push(file);
   }
-  for (const directory of new Set(record.entries.map((entry) => path.dirname(workspaceFile(root, `public${entry.src}`, true))))) {
+  for (const file of removable) fs.unlinkSync(file);
+  for (const directory of new Set(entries.map((entry) => path.dirname(workspaceFile(root, `public${entry.src}`, true))))) {
     if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) fs.rmdirSync(directory);
   }
   fs.unlinkSync(journal);

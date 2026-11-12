@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseMarkdownContent, serializeContentDocument, parseFrontmatter, extractHeadingsFromContent } from "../packages/content-core/src/index";
+import { parseMarkdownContent, serializeContentDocument, createContentDraft, extractHeadingsFromContent } from "../packages/content-core/src/index";
 import { pathIdentity, renameSiblingPath } from "../packages/content-core/src/paths";
 import { findGraphCodeBlocks } from "../packages/content-core/src/graph-blocks";
 
@@ -23,8 +23,8 @@ test("metadata editing retains YAML comments and unknown fields", () => {
   const parsed = parseMarkdownContent(raw, "note");
   const result = serializeContentDocument({ ...parsed, type: "note", frontmatterBlock: parsed.frontmatterBlock ?? undefined, metadata: { ...parsed.metadata, title: "after" }, metadataDirty: true });
   assert.match(result, /# keep me/);
-  assert.equal(parseFrontmatter(result, "note").data.title, "after");
-  assert.deepEqual(parseFrontmatter(result, "note").data.custom, { retained: true });
+  assert.equal(parseMarkdownContent(result, "note").frontmatterRaw.title, "after");
+  assert.deepEqual(parseMarkdownContent(result, "note").frontmatterRaw.custom, { retained: true });
 });
 
 test("invalid YAML remains available and cannot be silently replaced during metadata editing", () => {
@@ -37,7 +37,7 @@ test("invalid YAML remains available and cannot be silently replaced during meta
 
 test("calendar dates remain strings and both content consumers receive identical data", () => {
   const raw = '---\ndate: 2026-04-03\ntitle: 中文\n---\nbody';
-  assert.equal(parseFrontmatter(raw, "note").data.date, "2026-04-03");
+  assert.equal(parseMarkdownContent(raw, "note").frontmatterRaw.date, "2026-04-03");
   assert.equal((parseMarkdownContent(raw, "note").metadata as { date: string }).date, "2026-04-03");
 });
 
@@ -57,9 +57,29 @@ test('plain docs preserve their format and persist date-only metadata edits', ()
   const parsed = parseMarkdownContent('plain\n', 'doc');
   assert.equal(serializeContentDocument({ ...parsed, type: 'doc', frontmatterBlock: undefined, metadataDirty: false }), 'plain\n');
   const saved = serializeContentDocument({ ...parsed, type: 'doc', frontmatterBlock: undefined, metadata: { title: '', date: '2026-11-12' }, metadataDirty: true });
-  assert.equal(parseFrontmatter(saved, 'doc').data.date, '2026-11-12');
+  assert.equal(parseMarkdownContent(saved, 'doc').frontmatterRaw.date, '2026-11-12');
   const existing = parseMarkdownContent('---\n# retained\ntitle: before\ncustom: yes\n---\nbody', 'doc');
   const edited = serializeContentDocument({ ...existing, type: 'doc', frontmatterBlock: existing.frontmatterBlock ?? undefined, metadata: { title: 'after' }, metadataDirty: true });
   assert.match(edited, /# retained/);
-  assert.equal(parseFrontmatter(edited, 'doc').data.custom, 'yes');
+  assert.equal(parseMarkdownContent(edited, 'doc').frontmatterRaw.custom, 'yes');
+});
+
+test('创建草稿只改变发布状态，不将坏字段静默替换为空值', () => {
+  const raw = '---\npublication: published\ntitle: { creative: retained }\ntags: wrong-format\n---\nbody\n';
+  const draft = parseMarkdownContent(createContentDraft(raw, 'note'), 'note');
+  assert.equal(draft.metadata.publication, 'draft');
+  assert.deepEqual(draft.frontmatterRaw.title, { creative: 'retained' });
+  assert.equal(draft.frontmatterRaw.tags, 'wrong-format');
+  assert.equal(draft.content, 'body\n');
+  assert.match(draft.issues.join(' '), /title.*tags/);
+});
+
+test('编辑其他属性时保留坏字段，避免丢失尚未修复的创作数据', () => {
+  const parsed = parseMarkdownContent('---\npublication: published\ntitle: { retained: creative-value }\ntags: [before]\ncustom: yes\n---\nbody', 'note');
+  const saved = serializeContentDocument({ ...parsed, type: 'note', frontmatterBlock: parsed.frontmatterBlock!, metadata: { ...parsed.metadata, tags: ['after'] }, metadataDirty: true });
+  const after = parseMarkdownContent(saved, 'note');
+  assert.deepEqual(after.frontmatterRaw.title, { retained: 'creative-value' });
+  assert.deepEqual(after.frontmatterRaw.tags, ['after']);
+  assert.equal(after.frontmatterRaw.custom, 'yes');
+  assert.match(after.issues.join(' '), /title/);
 });

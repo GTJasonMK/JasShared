@@ -1,4 +1,5 @@
 import { imageSource, readPublication, type Publication } from "./publication";
+import { readContentDate } from "./content-common";
 export interface PhotoImage { src: string; width: number; height: number }
 export interface Photo { id: string; title: string; alt: string; publication: Publication; images: PhotoImage[]; category?: string; takenAt?: string; location?: string; camera?: string }
 
@@ -27,7 +28,7 @@ export function parsePhotos(value: unknown, options: { draft?: boolean } = {}): 
       return { src, width: image.width as number, height: image.height as number };
     });
     const takenAt = text("takenAt");
-    if (takenAt && (!/^\d{4}-\d{2}-\d{2}$/.test(takenAt) || !Number.isFinite(Date.parse(takenAt)) || new Date(takenAt).toISOString().slice(0, 10) !== takenAt)) throw new Error(`作品 ${id} 的拍摄日期无效。`);
+    readContentDate(takenAt);
     return { id, title: text("title", true)!, alt: text("alt", true)!, publication: readPublication(row.publication), images, category: text("category"), takenAt, location: text("location"), camera: text("camera") };
   });
 }

@@ -18,7 +18,7 @@ async function main() {
   const root = fs.realpathSync(process.cwd());
   if (command === "prepare") { prepareExport(root); return; }
   if (command === "finalize") { finalizeExport(root); return; }
-  if (command === "version") { output({ protocol: TOOL_PROTOCOL, version: "0.3.0" }); return; }
+  if (command === "version") { output({ protocol: TOOL_PROTOCOL, version: "0.4.0" }); return; }
   const raw = process.stdin.isTTY ? "" : fs.readFileSync(0, "utf8");
   const input: Record<string, unknown> = raw.trim() ? JSON.parse(raw) : {};
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("命令输入必须为对象。");

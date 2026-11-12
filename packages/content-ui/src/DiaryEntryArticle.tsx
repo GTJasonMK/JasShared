@@ -36,9 +36,9 @@ export default function DiaryEntryArticle({ entry, singleEntry = false }: DiaryE
       {singleEntry ? null : (
         <header className="mb-4">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-mono text-[var(--color-gold)] tracking-wide">
+            {entry.time && <span className="text-sm font-mono text-[var(--color-gold)] tracking-wide">
               {entry.time}
-            </span>
+            </span>}
             <h2 className="text-xl font-semibold">{entry.title}</h2>
           </div>
           <EntryMeta entry={entry} />

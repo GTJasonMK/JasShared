@@ -8,7 +8,7 @@ import type { PublishState, PublishInspection } from "@jas/content-core";
 export type { PublishState, PublishInspection } from "@jas/content-core";
 
 type Reporter = (state: PublishState) => void;
-const managed = (file: string) => /^content\/(?:site\.json|photography\/photos\.json|(?:notes|projects|graphs|roadmaps|pages|diary)\/.+\.md)$/i.test(file) || /^public\/(?:media\/[a-f0-9]+\.webp|photography\/[^/]+\/(?:full|640|960)\.webp)$/u.test(file);
+const managed = (file: string) => path.posix.normalize(file) === file && (/^content\/(?:site\.json|photography\/photos\.json|(?:notes|projects|graphs|roadmaps|pages|diary)\/.+\.md)$/i.test(file) || /^public\/(?:media\/[a-f0-9]+\.webp|photography\/[^/]+\/(?:full|640|960)\.webp)$/u.test(file));
 const git = (run: CommandRunner, root: string, ...args: string[]) => run("git", args, root);
 const gh = (run: CommandRunner, root: string, ...args: string[]) => run("gh", args, root);
 
@@ -51,9 +51,34 @@ function matchesBlobs(actual: Record<string, string>, expected: Record<string, s
   return Object.entries(expected).every(([file, hash]) => hash === null ? actual[file] === undefined : actual[file] === hash);
 }
 
+async function matchesCommit(root: string, snapshot: NonNullable<PublishState["pendingCommit"]>, run: CommandRunner): Promise<boolean> {
+  const [parents, message, files, tree] = await Promise.all([
+    git(run, root, "rev-list", "--parents", "-n", "1", "HEAD"),
+    git(run, root, "log", "-1", "--format=%B"),
+    git(run, root, "diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "HEAD"),
+    git(run, root, "ls-tree", "-r", "-z", "HEAD"),
+  ]);
+  return JSON.stringify(parents.split(" ").slice(1)) === JSON.stringify([snapshot.parentSha]) && message === snapshot.message &&
+    JSON.stringify(files.split("\0").filter(Boolean).sort()) === JSON.stringify(snapshot.paths) && matchesBlobs(gitEntries(tree, true), snapshot.blobs);
+}
+
 export function publicationState(root: string, stateDirectory: string): PublishState | null {
   const file = statePath(root, stateDirectory);
-  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null;
+  if (!fs.existsSync(file)) return null;
+  const value: unknown = JSON.parse(fs.readFileSync(file, "utf8"));
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("发布恢复记录格式无效，已停止发布。");
+  const row = value as Record<string, unknown>;
+  const sha = (value: unknown) => typeof value === "string" && /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(value);
+  if (row.root !== fs.realpathSync(root) || typeof row.message !== "string" || !["idle", "checking", "building", "committing", "committed", "pushing", "source_workflow", "pages_workflow", "verifying", "complete", "review_required", "unconfirmed"].includes(row.phase as string) || !Number.isSafeInteger(row.updatedAt) || (row.updatedAt as number) < 0 || ["sourceSha", "deploySha"].some((key) => row[key] !== undefined && !sha(row[key])) || ["sourceRun", "pagesRun"].some((key) => row[key] !== undefined && (!Number.isSafeInteger(row[key]) || (row[key] as number) <= 0)) || (row.url !== undefined && (typeof row.url !== "string" || !/^https:\/\/[^/@\s]+(?:\/[^\s]*)?$/.test(row.url)))) throw new Error("发布恢复记录包含无效状态，已停止发布。");
+  if (row.pendingCommit !== undefined) {
+    const pending = row.pendingCommit as Record<string, unknown> | null;
+    if (!pending || typeof pending !== "object" || !sha(pending.parentSha) || typeof pending.message !== "string" || !pending.message.trim() || !Array.isArray(pending.paths) || !pending.paths.length || pending.paths.some((file) => typeof file !== "string" || !managed(file)) || !pending.blobs || typeof pending.blobs !== "object" || Array.isArray(pending.blobs)) throw new Error("发布恢复提交记录无效，已停止发布。");
+    const paths = [...new Set(pending.paths)].sort();
+    const blobs = pending.blobs as Record<string, unknown>;
+    if (JSON.stringify(paths) !== JSON.stringify(pending.paths) || JSON.stringify(Object.keys(blobs).sort()) !== JSON.stringify(paths) || Object.values(blobs).some((hash) => hash !== null && !sha(hash))) throw new Error("发布恢复快照不完整，已停止发布。");
+    for (const relative of paths) workspaceFile(root, relative, true);
+  }
+  return row as unknown as PublishState;
 }
 function statePath(root: string, directory: string): string { return path.join(directory, `publish-${createHash("sha256").update(fs.realpathSync(root)).digest("hex")}.json`); }
 
@@ -68,18 +93,21 @@ export async function publishWorkspace(root: string, stateDirectory: string, rep
   let requiresReview = previousPhase === "review_required";
   return withWorkspaceLock(root, async () => {
     try {
-      if (requiresReview) throw new Error("上次提交与构建快照不一致，请先人工核对该本地提交；编辑器不会推送它。");
       update("checking", "检查依赖、仓库与发布范围");
       const inspection = await inspectPublication(root, run);
       if (inspection.blockers.length) throw new Error(inspection.blockers.join("\n"));
       await git(run, root, "fetch", "origin", inspection.branch);
       const head = await git(run, root, "rev-parse", "HEAD");
       const remote = await git(run, root, "rev-parse", `refs/remotes/origin/${inspection.branch}`);
+      if (requiresReview) {
+        if (head !== state.pendingCommit?.parentSha) throw new Error("上次提交与构建快照不一致，请先人工核对并撤回该本地提交；编辑器不会推送它。");
+        state = { root: state.root, phase: "checking", message: "已撤回异常提交，重新检查内容", updatedAt: Date.now() };
+        requiresReview = false;
+      }
       if (previousPhase === "complete" && head === remote && state.sourceSha !== head) state = { root: state.root, phase: "checking", message: "检查当前提交", updatedAt: Date.now() };
       if (state.pendingCommit && head !== state.pendingCommit.parentSha && state.sourceSha !== head) {
-        const parent = await git(run, root, "rev-parse", "HEAD^");
-        const message = await git(run, root, "log", "-1", "--format=%B");
-        if (parent === state.pendingCommit.parentSha && message === state.pendingCommit.message && fingerprint(root, state.pendingCommit.paths) === state.pendingCommit.fingerprint && matchesBlobs(gitEntries(await git(run, root, "ls-tree", "-r", "-z", "HEAD"), true), state.pendingCommit.blobs)) { state.sourceSha = head; update("committed", "已恢复上次内容提交"); }
+        if (!await matchesCommit(root, state.pendingCommit, run)) { requiresReview = true; throw new Error("本地提交与构建快照不一致，已保留提交并阻止推送，请人工核对。"); }
+        state.sourceSha = head; update("committed", "已恢复上次内容提交");
       }
       if (head !== remote && head !== state.sourceSha) throw new Error("存在未知的未推送提交或远端更新，请先在 Git 中同步。");
       const resuming = state.sourceSha === head && (head !== remote || previousPhase !== "complete");
@@ -95,15 +123,14 @@ export async function publishWorkspace(root: string, stateDirectory: string, rep
         const latest = await inspectPublication(root, run);
         if (latest.blockers.length || JSON.stringify(latest.changes) !== JSON.stringify(inspection.changes) || fingerprint(root, latest.changes) !== before) throw new Error("构建期间内容发生变化，已停止发布，请重新检查。");
         const message = `content: 更新站点内容（${inspection.changes.length} 个文件，${randomUUID()}）`;
-        state.pendingCommit = { parentSha: head, fingerprint: before, paths: inspection.changes, message, blobs };
+        state.pendingCommit = { parentSha: head, paths: inspection.changes, message, blobs };
         update("committing", "保存本次内容提交");
         const pathspec = workspaceFile(root, ".run/publish-paths", true);
         atomicWrite(pathspec, inspection.changes.map((file) => `:(literal)${file}\0`).join(""));
         try { await git(run, root, "add", `--pathspec-from-file=${pathspec}`, "--pathspec-file-nul"); } finally { fs.unlinkSync(pathspec); }
         if (!matchesBlobs(gitEntries(await git(run, root, "ls-files", "--stage", "-z")), blobs)) throw new Error("暂存内容与构建快照不一致，已停止提交。");
         await git(run, root, "commit", "-m", message);
-        const committedFiles = (await git(run, root, "diff-tree", "--no-commit-id", "--name-only", "-r", "-z", "HEAD")).split("\0").filter(Boolean).sort();
-        if (JSON.stringify(committedFiles) !== JSON.stringify(inspection.changes) || !matchesBlobs(gitEntries(await git(run, root, "ls-tree", "-r", "-z", "HEAD"), true), blobs)) { requiresReview = true; throw new Error("本地提交与构建快照不一致，已保留提交并阻止推送，请人工核对。"); }
+        if (!await matchesCommit(root, state.pendingCommit, run)) { requiresReview = true; throw new Error("本地提交与构建快照不一致，已保留提交并阻止推送，请人工核对。"); }
         state = { root: state.root, sourceSha: await git(run, root, "rev-parse", "HEAD"), phase: "committed", message: "内容已提交", updatedAt: Date.now() };
         update("committed", "内容已提交");
       } else if (!state.sourceSha) { state.sourceSha = head; update("committed", "查询当前提交的部署状态"); }

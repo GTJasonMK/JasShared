@@ -1,25 +1,21 @@
-export function readFrontmatterString(...values: unknown[]): string | undefined {
-  for (const value of values) {
-    if (typeof value === "string" && value.trim() !== "") {
-      return value;
-    }
-  }
-  return undefined;
+export function readFrontmatterString(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") throw new Error("必须为字符串。");
+  return value.trim() || undefined;
 }
 
 export function parseStringArray(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => String(item).trim())
-      .filter(Boolean);
-  }
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string" || !item.trim())) throw new Error("必须为非空字符串组成的数组。");
+  return [...new Set(value.map((item: string) => item.trim()))];
+}
 
-  if (typeof value === "string") {
-    return value
-      .split(/[,\uFF0C\u3001]/)
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
+export function isCalendarDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+}
 
-  return [];
+export function readContentDate(value: unknown): string | undefined {
+  const date = readFrontmatterString(value);
+  if (date !== undefined && !isCalendarDate(date)) throw new Error("必须为有效的 YYYY-MM-DD 日期。");
+  return date;
 }

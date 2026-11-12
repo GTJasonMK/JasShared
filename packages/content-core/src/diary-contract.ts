@@ -1,3 +1,5 @@
+import { isCalendarDate, readContentDate } from "./content-common";
+
 const DIARY_FILE_NAME_PATTERN = /^(\d{4}-\d{2}-\d{2})(?:-(\d{2})-(\d{2}))?(?:-(.+))?$/;
 
 export const DIARY_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -45,44 +47,22 @@ export function inferDiaryFromFileName(fileNameNoExt: string): DiaryNameInferenc
   if (!match) return null;
 
   const [, date, hour, minute, titleSlug] = match;
+  if (!isCalendarDate(date)) return null;
   return {
     date,
-    time: hour && minute ? `${hour}:${minute}` : "",
+    time: normalizeDiaryTime(hour && minute ? `${hour}:${minute}` : ""),
     title: titleSlug ? titleFromSlug(titleSlug) : date,
   };
 }
 
 export function resolveDiaryDate(metaDate?: string, inferredDate?: string): string {
-  const normalizedMetaDate = (metaDate || "").trim();
-  if (DIARY_DATE_PATTERN.test(normalizedMetaDate)) return normalizedMetaDate;
-
-  const normalizedInferredDate = (inferredDate || "").trim();
-  return DIARY_DATE_PATTERN.test(normalizedInferredDate) ? normalizedInferredDate : "";
+  return readContentDate(metaDate) ?? readContentDate(inferredDate) ?? "";
 }
 
 export function normalizeDiaryTime(value: unknown): string {
-  if (!value) return "";
-
-  const raw = String(value).trim();
-  const colonMatch = raw.match(/^(\d{1,2}):(\d{2})$/);
-  if (colonMatch) {
-    const hour = Number(colonMatch[1]);
-    const minute = Number(colonMatch[2]);
-    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
-      return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-    }
-  }
-
-  const compactMatch = raw.match(/^(\d{2})(\d{2})$/);
-  if (compactMatch) {
-    const hour = Number(compactMatch[1]);
-    const minute = Number(compactMatch[2]);
-    if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
-      return `${compactMatch[1]}:${compactMatch[2]}`;
-    }
-  }
-
-  return "";
+  if (value === undefined || value === "") return "";
+  if (typeof value !== "string" || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)) throw new Error("time 必须为有效的 HH:MM 时间。");
+  return value;
 }
 
 export function buildDiaryEntryId(filePath: string, diaryRootPath: string): string {

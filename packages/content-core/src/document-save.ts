@@ -1,16 +1,16 @@
 import type { ContentMetadata, ContentType, LineEnding } from "./types";
 import { parseDocument, stringify } from "yaml";
-import { parseMarkdownContent } from "./content-parser";
+import { normalizeContentMetadata, parseMarkdownContent } from "./content-parser";
 import type { JasBlogContentType } from "./types";
 
 export function createContentDraft(raw: string, type: JasBlogContentType): string {
   const parsed = parseMarkdownContent(raw, type);
-  return serializeContentDocument({ ...parsed, type, metadata: { ...parsed.metadata, publication: "draft" }, frontmatterBlock: parsed.frontmatterBlock ?? undefined, metadataDirty: true });
+  return serializeContentDocument({ ...parsed, type, metadata: { publication: "draft" }, frontmatterBlock: parsed.frontmatterBlock ?? undefined, metadataDirty: true });
 }
 
 export interface ContentDocumentSaveInput {
   type: ContentType;
-  metadata: ContentMetadata;
+  metadata: Partial<ContentMetadata>;
   content: string;
   hasFrontmatter: boolean;
   frontmatterBlock?: string;
@@ -50,8 +50,11 @@ function serializeFrontmatter(file: ContentDocumentSaveInput): string {
     if (!match) throw new Error("frontmatter 边界格式无效，已保留原文。");
     const doc = parseDocument(match[2]);
     if (doc.errors.length) throw new Error(`frontmatter YAML 解析失败，已保留原文：${doc.errors[0].message}`);
-    for (const key of Object.keys(metadata)) if (!(key in cleaned)) doc.delete(key);
-    for (const [key, value] of Object.entries(cleaned)) doc.set(key, value);
+    const previous = normalizeContentMetadata(doc.toJS() ?? {}, file.type).metadata as unknown as Record<string, unknown>;
+    for (const [key, value] of Object.entries(metadata)) {
+      if (JSON.stringify(value) === JSON.stringify(previous[key])) continue;
+      if (key in cleaned) doc.set(key, cleaned[key]); else doc.delete(key);
+    }
     return match[1] + doc.toString(yamlOptions).replace(/\n$/, "") + match[3];
   }
   const merged = cleanMetadata({ ...file.frontmatterRaw, ...metadata });

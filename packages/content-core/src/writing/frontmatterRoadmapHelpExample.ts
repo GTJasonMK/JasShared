@@ -79,8 +79,8 @@ export const FRONTMATTER_ROADMAP_HELP_EXAMPLE: FrontmatterHelpExample = {
       ],
     },
     {
-      id: "roadmap-prefix-compatibility",
-      title: "前缀兼容写法",
+      id: "roadmap-list-prefixes",
+      title: "列表前缀写法",
       description:
         "解析器支持 `-`、`*`、`+` 三种列表前缀，但优先级和状态语法保持完全相同。",
       code: `- [ ] 默认写法 \`high\`

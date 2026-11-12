@@ -38,7 +38,7 @@ test("site configuration separates navigation visibility from public routes and 
 test("publication is explicit and independent of roadmap status; draft creation preserves YAML", () => {
   assert.throws(() => readPublication(undefined));
   const missing = normalizeContentMetadata({ title: "unfinished", status: "active" }, "roadmap");
-  assert.equal(missing.metadata.publication, "draft");
+  assert.equal(missing.metadata.publication, undefined);
   assert.match(missing.issues.join(" "), /publication/);
   const raw = '\uFEFF---\r\n# keep\r\ntitle: Synthetic\r\npublication: published\r\ncustom: yes\r\n---\r\nbody\r\n';
   const draft = createContentDraft(raw, "page");
@@ -144,6 +144,20 @@ function publishFixture() {
   return { root, remote, stateDirectory, runner, cleanup() { for (const dir of [root, remote, stateDirectory]) fs.rmSync(dir, { recursive: true }); } };
 }
 
+test("素材恢复先核对整批记录，后续损坏项不会导致前面的原图被删除", () => {
+  const root = workspace();
+  try {
+    const src = "/photography/retained/full.webp";
+    write(root, `public${src}`, "creative output");
+    for (const later of [{ src: "/photography/../media/unrelated.webp", version: "a".repeat(64) }, { src: "/photography/changed/full.webp", version: "a".repeat(64) }]) {
+      write(root, "public/photography/changed/full.webp", "changed output");
+      write(root, ".run/media-deletions.json", JSON.stringify({ expected: "b".repeat(64), entries: [{ src, version: fileVersion(path.join(root, `public${src}`)) }, later] }));
+      assert.throws(() => recoverMediaCleanup(root), /无效|已被修改/);
+      assert.equal(fs.readFileSync(path.join(root, `public${src}`), "utf8"), "creative output");
+    }
+  } finally { fs.rmSync(root, { recursive: true }); }
+});
+
 test("publication stops before mutation when source files are dirty", async () => {
   const fixture = publishFixture();
   try {
@@ -153,6 +167,24 @@ test("publication stops before mutation when source files are dirty", async () =
     assert.match(inspection.blockers.join(" "), /src\/index/);
     await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: fixture.runner }), /非内容/);
     assert.equal(git(fixture.root, "rev-parse", "HEAD"), before);
+  } finally { fixture.cleanup(); }
+});
+
+test("发布恢复拒绝损坏状态，不执行 Git 或覆盖原记录", async () => {
+  const fixture = publishFixture();
+  try {
+    write(fixture.root, "content/site.json", JSON.stringify({ ...site(), name: "Pending content" }));
+    await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: async (command, args, cwd) => {
+      if (command === "git" && args[0] === "push") throw new Error("Synthetic network failure");
+      return fixture.runner(command, args, cwd);
+    } }), /network/);
+    const checkpoint = path.join(fixture.stateDirectory, fs.readdirSync(fixture.stateDirectory)[0]);
+    const damaged = { ...publicationState(fixture.root, fixture.stateDirectory), sourceSha: "invalid-sha" };
+    fs.writeFileSync(checkpoint, JSON.stringify(damaged));
+    let calls = 0;
+    await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: async () => { calls++; return ""; } }), /无效状态/);
+    assert.equal(calls, 0);
+    assert.deepEqual(JSON.parse(fs.readFileSync(checkpoint, "utf8")), damaged);
   } finally { fixture.cleanup(); }
 });
 
@@ -188,9 +220,29 @@ test("publication recovers the gap between Git commit and saved checkpoint", asy
     write(fixture.root, "content/site.json", JSON.stringify({ ...site(), name: "Public change" }));
     await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: runner }), /interruption/);
     const committed = git(fixture.root, "rev-parse", "HEAD");
+    write(fixture.root, "content/site.json", JSON.stringify({ ...site(), name: "Later unsaved publication" }));
     const result = await publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: runner, wait: async () => {}, verify: async () => true });
     assert.equal(result.sourceSha, committed); assert.equal(result.phase, "complete");
     assert.equal(git(fixture.root, "rev-list", "--count", "HEAD"), "2");
+    assert.equal(readSite(fixture.root).name, "Later unsaved publication");
+  } finally { fixture.cleanup(); }
+});
+
+test("恢复提交时拒绝 Git hook 额外加入的文件", async () => {
+  const fixture = publishFixture();
+  const remoteBefore = git(fixture.remote, "rev-parse", "master");
+  const runner: CommandRunner = async (command, args, cwd) => {
+    const result = await fixture.runner(command, args, cwd);
+    if (command === "git" && args[0] === "commit") throw new Error("Synthetic process interruption");
+    return result;
+  };
+  try {
+    write(fixture.root, "content/site.json", JSON.stringify({ ...site(), name: "Build snapshot" }));
+    fs.writeFileSync(path.join(fixture.root, ".git/hooks/pre-commit"), '#!/bin/sh\nprintf "unexpected" > injected.txt\ngit add injected.txt\n', { mode: 0o700 });
+    await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: runner }), /interruption/);
+    await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: fixture.runner, wait: async () => {}, verify: async () => true }), /构建快照不一致/);
+    assert.equal(git(fixture.remote, "rev-parse", "master"), remoteBefore);
+    assert.equal(publicationState(fixture.root, fixture.stateDirectory)?.phase, "review_required");
   } finally { fixture.cleanup(); }
 });
 

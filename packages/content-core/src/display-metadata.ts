@@ -11,10 +11,6 @@ function getSlug(fileName: string): string {
   return fileName.replace(/\.md$/i, "");
 }
 
-function normalizeDate(date?: string): string {
-  return date?.trim() || "";
-}
-
 function normalizeText(value?: string): string {
   return value?.trim() || "";
 }
@@ -25,7 +21,7 @@ export function resolveNoteDisplay(fileName: string, metadata: NoteMetadata): {
 } {
   return {
     title: normalizeText(metadata.title) || getSlug(fileName),
-    date: normalizeDate(metadata.date),
+    date: normalizeText(metadata.date),
   };
 }
 
@@ -38,7 +34,7 @@ export function resolveProjectDisplay(
 } {
   return {
     name: normalizeText(metadata.name) || getSlug(fileName),
-    date: normalizeDate(metadata.date),
+    date: normalizeText(metadata.date),
   };
 }
 
@@ -68,7 +64,7 @@ export function resolveRoadmapDisplay(
 } {
   return {
     title: normalizeText(metadata.title) || getSlug(fileName),
-    date: normalizeDate(metadata.date),
+    date: normalizeText(metadata.date),
     status: metadata.status || "active",
   };
 }
@@ -82,6 +78,6 @@ export function resolveGraphDisplay(
 } {
   return {
     name: normalizeText(metadata.name) || getSlug(fileName),
-    date: normalizeDate(metadata.date),
+    date: normalizeText(metadata.date),
   };
 }

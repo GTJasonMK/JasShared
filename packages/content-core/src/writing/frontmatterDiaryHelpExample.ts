@@ -72,7 +72,7 @@ content/diary/2026/04/2026-04-03-21-30-night-review.md
 content/diary/2026/04/2026-04-04.md`,
       notes: [
         "推荐格式是 `YYYY/MM/YYYY-MM-DD-HH-mm-主题.md`，这样列表、搜索和聚合都更稳定。",
-        "如果只写到天，文件名也可以是 `YYYY-MM-DD.md`，时间会回退为 `00:00`。",
+        "文件名也可以是 `YYYY-MM-DD.md`；准确的记录时间填写在 `time` 字段。",
         "编辑器“新建考研日志”默认就会生成带年月目录和时间戳的相对路径。",
       ],
     },
@@ -122,12 +122,12 @@ title: 晚上复盘总结
       code: `---
 publication: draft
 date: 2026-04-03
-time: 0900
+time: 09:00
 title: 上午图书馆刷题记录
 mood: focused
 weather: sunny
 location: library
-companions: 学习搭子A、学习搭子B
+companions: [学习搭子A, 学习搭子B]
 ---
 
 ## 完成情况
@@ -136,7 +136,7 @@ companions: 学习搭子A、学习搭子B
 - 政治错题复盘 1 小时`,
       notes: [
         "`mood/weather/location` 会出现在列表和详情头部，用来标记当天状态和环境。",
-        "`companions` 既可以写 YAML 数组，也兼容逗号、顿号分隔字符串。",
+        "`companions` 使用字符串数组，多人同行时每个人单独一项。",
         "同一天多条 diary 聚合时，页面会优先取当天最新一条非空的 mood/weather/location。",
       ],
     },

@@ -1,36 +1,14 @@
-/**
- * 内容解析服务
- * 处理 Markdown frontmatter 和 JSON 的解析与序列化
- */
+import { parse as parseYAML } from "yaml";
+import { parseStringArray, readContentDate, readFrontmatterString } from "./content-common";
+import { normalizeDiaryTime } from "./diary-contract";
+import { normalizeRoadmapStatus } from "./roadmap-status";
+import { parseDisplay, readPublication } from "./publication";
+import type { ContentMetadata, ContentType, LineEnding, TechStackItem } from "./types";
 
-import { parseStringArray, readFrontmatterString } from './content-common';
-import { normalizeDiaryTime } from './diary-contract';
-export { parseRoadmapItemsFromContent } from './roadmap-content';
-import { normalizeRoadmapStatus } from './roadmap-status';
-import { parse as parseYAML } from 'yaml';
-import { parseDisplay, readPublication } from './publication';
-import type { ContentMetadata } from './types';
-import type {
-  ContentType,
-  NoteMetadata,
-  ProjectMetadata,
-  DiaryMetadata,
-  RoadmapMetadata,
-  GraphMetadata,
-  DocMetadata,
-  TechStackItem,
-  LineEnding,
-} from './types';
+export { parseRoadmapItemsFromContent } from "./roadmap-content";
 
-/**
- * 解析 Markdown 内容
- * 从 raw 文本中提取 YAML frontmatter 和正文内容
- */
-export function parseMarkdownContent(
-  raw: string,
-  type: ContentType
-): {
-  metadata: NoteMetadata | ProjectMetadata | DiaryMetadata | RoadmapMetadata | GraphMetadata | DocMetadata;
+export interface ParsedContentDocument {
+  metadata: ContentMetadata;
   issues: string[];
   frontmatterRaw: Record<string, unknown>;
   frontmatterBlock: string | null;
@@ -38,215 +16,68 @@ export function parseMarkdownContent(
   hasFrontmatter: boolean;
   hasBom: boolean;
   lineEnding: LineEnding;
-} {
-  // 兼容 Windows/部分编辑器写入的 UTF-8 BOM（JasBlog content 示例文件中存在）
-  const hasBom = raw.charCodeAt(0) === 0xFEFF;
-  const rawText = hasBom ? raw.slice(1) : raw;
-  const lineEnding: LineEnding = rawText.includes('\r\n') ? 'crlf' : 'lf';
-  const normalizedRawText = normalizeEditorContent(rawText);
+}
 
-  // 匹配 YAML frontmatter: --- ... ---
-  // - frontmatterBlock：尽量保留原始文本（含注释/缩进/空行），用于“原样保存”
-  // - yamlContent：仅用于解析出 metadata（不做格式化）
-  const frontmatterMatch = rawText.match(/^(---\r?\n)([\s\S]*?)(\r?\n---\r?\n?)([\s\S]*)$/);
-
-  if (!frontmatterMatch) {
-    // 没有 frontmatter，返回默认元数据
-    const defaultMetadata = getDefaultMetadata(type);
-    return {
-      metadata: defaultMetadata,
-      issues: [],
-      frontmatterRaw: {},
-      frontmatterBlock: null,
-      content: normalizedRawText,
-      hasFrontmatter: false,
-      hasBom,
-      lineEnding,
-    };
-  }
-
-  const frontmatterBlock = frontmatterMatch[1] + frontmatterMatch[2] + frontmatterMatch[3];
-  const yamlContent = frontmatterMatch[2];
-  const bodyContent = normalizeEditorContent(frontmatterMatch[4]);
-
-  let parsed: Record<string, unknown> = {};
+export function parseMarkdownContent(raw: string, type: ContentType): ParsedContentDocument {
+  const hasBom = raw.startsWith("\uFEFF");
+  const text = hasBom ? raw.slice(1) : raw;
+  const lineEnding: LineEnding = text.includes("\r\n") ? "crlf" : "lf";
+  const match = text.match(/^(---\r?\n)([\s\S]*?)(\r?\n---\r?\n?)([\s\S]*)$/);
+  const base = { content: (match ? match[4] : text).replace(/\r\n/g, "\n"), frontmatterBlock: match ? match[1] + match[2] + match[3] : null, hasFrontmatter: !!match, hasBom, lineEnding };
+  if (!match) return { ...base, ...normalizeContentMetadata(type === "doc" ? {} : { publication: "draft" }, type), frontmatterRaw: {} };
+  let fields: Record<string, unknown>;
   try {
-    const value: unknown = parseYAML(yamlContent);
-    if (value !== null && value !== undefined && (typeof value !== 'object' || Array.isArray(value))) {
-      throw new Error('frontmatter 必须为字段对象');
-    }
-    parsed = (value ?? {}) as Record<string, unknown>;
+    const parsed: unknown = parseYAML(match[2]);
+    if (parsed !== undefined && parsed !== null && (typeof parsed !== "object" || Array.isArray(parsed))) throw new Error("frontmatter 必须为字段对象。");
+    fields = (parsed ?? {}) as Record<string, unknown>;
   } catch (error) {
-    return {
-      metadata: getDefaultMetadata(type),
-      issues: [`${type} frontmatter YAML 解析失败：${getErrorMessage(error)}`],
-      frontmatterRaw: {},
-      frontmatterBlock,
-      content: bodyContent,
-      hasFrontmatter: true,
-      hasBom,
-      lineEnding,
-    };
+    return { ...base, metadata: normalizeContentMetadata(type === "doc" ? {} : { publication: "draft" }, type).metadata, issues: [`${type} frontmatter YAML 解析失败：${errorMessage(error)}`], frontmatterRaw: {} };
   }
-
-  // 根据类型构建元数据
-  const { metadata, issues } = normalizeContentMetadata(parsed, type);
-  return { metadata, issues, frontmatterRaw: parsed, frontmatterBlock, content: bodyContent, hasFrontmatter: true, hasBom, lineEnding };
+  return { ...base, ...normalizeContentMetadata(fields, type), frontmatterRaw: fields };
 }
 
-function normalizeEditorContent(content: string): string {
-  return content.replace(/\r\n/g, '\n');
-}
-
-/**
- * 根据解析结果和类型构建元数据对象
- */
-export function normalizeContentMetadata(parsed: Record<string, unknown>, type: ContentType): { metadata: ContentMetadata; issues: string[] } {
-  const result = normalizeTypeMetadata(parsed, type);
-  if (type === 'doc') return result;
-  try {
-    return { metadata: { ...result.metadata, publication: readPublication(parsed.publication), display: parseDisplay(parsed.display) }, issues: result.issues };
-  } catch (error) {
-    return { metadata: { ...result.metadata, publication: 'draft' }, issues: [...result.issues, getErrorMessage(error)] };
-  }
-}
-
-function normalizeTypeMetadata(
-  parsed: Record<string, unknown>,
-  type: ContentType
-): {
-  metadata: NoteMetadata | ProjectMetadata | DiaryMetadata | RoadmapMetadata | GraphMetadata | DocMetadata;
-  issues: string[];
-} {
-  if (type === 'note') {
-    return {
-      metadata: {
-        title: readFrontmatterString(parsed.title) ?? '',
-        date: parsed.date ? String(parsed.date) : '',
-        excerpt: readFrontmatterString(parsed.excerpt) ?? '',
-        tags: parseStringArray(parsed.tags),
-      },
-      issues: [],
-    };
-  }
-
-  if (type === 'project') {
-    return {
-      metadata: {
-        name: readFrontmatterString(parsed.name, parsed.title) ?? '',
-        description: readFrontmatterString(parsed.description) ?? '',
-        github: readFrontmatterString(parsed.github) ?? '',
-        demo: readFrontmatterString(parsed.demo),
-        date: parsed.date ? String(parsed.date) : undefined,
-        tags: parseStringArray(parsed.tags),
-        techStack: normalizeTechStack(parsed.techStack),
-      },
-      issues: [],
-    };
-  }
-
-  if (type === 'diary') {
-    return {
-      metadata: {
-        title: readFrontmatterString(parsed.title) ?? '',
-        // 与 JasBlog 行为对齐：date/time 缺失时可从文件名推断（推断逻辑在 openFile 侧做）
-        date: parsed.date ? String(parsed.date) : '',
-        time: normalizeDiaryTime(parsed.time),
-        excerpt: readFrontmatterString(parsed.excerpt) ?? '',
-        tags: parseStringArray(parsed.tags),
-        mood: readFrontmatterString(parsed.mood),
-        weather: readFrontmatterString(parsed.weather),
-        location: readFrontmatterString(parsed.location),
-        companions: parseStringArray(parsed.companions),
-      },
-      issues: [],
-    };
-  }
-
-  if (type === 'roadmap') {
-    const status = normalizeRoadmapStatus(parsed.status);
-    return {
-      metadata: {
-        title: readFrontmatterString(parsed.title, parsed.name) ?? '',
-        description: readFrontmatterString(parsed.description) ?? '',
-        date: parsed.date ? String(parsed.date) : undefined,
-        status: status.status,
-      },
-      issues: status.error ? [status.error] : [],
-    };
-  }
-
-  if (type === 'graph') {
-    return {
-      metadata: {
-        name: readFrontmatterString(parsed.name, parsed.title) ?? '',
-        description: readFrontmatterString(parsed.description) ?? '',
-        date: parsed.date ? String(parsed.date) : undefined,
-      },
-      issues: [],
-    };
-  }
-
-  if (type === 'page') return { metadata: { title: readFrontmatterString(parsed.title) ?? '', description: readFrontmatterString(parsed.description) ?? '', date: readFrontmatterString(parsed.date) }, issues: [] };
-
-  // doc 类型（普通文档）
-  return {
-    metadata: {
-      title: readFrontmatterString(parsed.title) ?? '',
-      date: parsed.date ? String(parsed.date) : undefined,
-    },
-    issues: [],
+export function normalizeContentMetadata(fields: Record<string, unknown>, type: ContentType): { metadata: ContentMetadata; issues: string[] } {
+  const issues: string[] = [];
+  const field = <T,>(key: string, parse: (value: unknown) => T, empty: T): T => {
+    try { return parse(fields[key]); }
+    catch (error) { issues.push(`${type}.${key}：${errorMessage(error)}`); return empty; }
   };
+  const text = (key: string) => field(key, readFrontmatterString, undefined);
+  const date = field("date", readContentDate, undefined);
+  let metadata: ContentMetadata;
+  switch (type) {
+    case "note": metadata = { title: text("title") ?? "", date: date ?? "", excerpt: text("excerpt") ?? "", tags: field("tags", parseStringArray, []) }; break;
+    case "diary": metadata = {
+      title: text("title") ?? "", date: date ?? "", time: field("time", normalizeDiaryTime, ""), excerpt: text("excerpt") ?? "", tags: field("tags", parseStringArray, []),
+      mood: text("mood"), weather: text("weather"), location: text("location"), companions: field("companions", parseStringArray, []),
+    }; break;
+    case "project": metadata = { name: text("name") ?? "", description: text("description") ?? "", github: text("github") ?? "", demo: text("demo"), date, tags: field("tags", parseStringArray, []), techStack: field("techStack", normalizeTechStack, undefined) }; break;
+    case "graph": metadata = { name: text("name") ?? "", description: text("description") ?? "", date }; break;
+    case "roadmap": metadata = { title: text("title") ?? "", description: text("description") ?? "", date, status: field("status", normalizeRoadmapStatus, undefined) }; break;
+    case "page": metadata = { title: text("title") ?? "", description: text("description") ?? "", date }; break;
+    case "doc": metadata = { title: text("title") ?? "", date }; break;
+  }
+  const alias = type === "project" || type === "graph" ? "title" : type === "roadmap" ? "name" : null;
+  if (alias && fields[alias] !== undefined) issues.push(`${type}.${alias} 已移除，请使用 ${alias === "title" ? "name" : "title"}。`);
+  if (type !== "doc") {
+    metadata.publication = field("publication", readPublication, undefined);
+    if (type === "note" || type === "page") metadata.display = field("display", parseDisplay, undefined);
+    else if (fields.display !== undefined) issues.push(`${type}.display 仅适用于笔记和独立页面。`);
+  }
+  return { metadata, issues };
 }
 
-/**
- * 标准化 techStack 数组
- */
 export function normalizeTechStack(value: unknown): TechStackItem[] | undefined {
-  if (!value) return undefined;
-
-  // 兼容 JasBlog projects.ts：techStack 既可能是数组，也可能是逗号分隔字符串
-  if (typeof value === 'string') {
-    const names = parseStringArray(value);
-    if (names.length === 0) return [];
-    return names.map((name) => ({ name }));
-  }
-
-  if (!Array.isArray(value)) return undefined;
-
-  return value
-    .map((item): TechStackItem | null => {
-      if (typeof item === 'string') {
-        return item ? { name: item } : null;
-      }
-
-      if (typeof item !== 'object' || item === null) {
-        return null;
-      }
-
-      const obj = item as Record<string, unknown>;
-      const name = String(obj.name || '').trim();
-      if (!name) return null;
-
-      return {
-        name,
-        icon: typeof obj.icon === 'string' ? obj.icon : undefined,
-        color: typeof obj.color === 'string' ? obj.color : undefined,
-      };
-    })
-    .filter((item): item is TechStackItem => item !== null);
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) throw new Error("techStack 必须为对象数组。");
+  return value.map((item: unknown) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("techStack 每项必须为包含 name 的对象。");
+    const row = item as Record<string, unknown>;
+    if (Object.keys(row).some((key) => !["name", "icon", "color"].includes(key))) throw new Error("techStack 包含未支持字段。");
+    const name = readFrontmatterString(row.name);
+    if (!name) throw new Error("techStack.name 不能为空。");
+    return { name, ...(row.icon === undefined ? {} : { icon: readFrontmatterString(row.icon) }), ...(row.color === undefined ? {} : { color: readFrontmatterString(row.color) }) };
+  });
 }
 
-/**
- * 获取默认元数据
- */
-function getDefaultMetadata(type: ContentType): ContentMetadata {
-  return normalizeContentMetadata(type === 'doc' ? {} : { publication: 'draft' }, type).metadata;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message.split('\n')[0] || error.message;
-  }
-  return String(error);
-}
+function errorMessage(error: unknown): string { return error instanceof Error ? error.message : String(error); }

@@ -1,13 +1,12 @@
 {
   "name": "@jas/content-core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "sideEffects": false,
   "exports": {
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
     "./content-common": { "types": "./dist/content-common.d.ts", "default": "./dist/content-common.js" },
     "./content-parser": { "types": "./dist/content-parser.d.ts", "default": "./dist/content-parser.js" },
-    "./frontmatter": { "types": "./dist/frontmatter.d.ts", "default": "./dist/frontmatter.js" },
     "./date-sort": { "types": "./dist/date-sort.d.ts", "default": "./dist/date-sort.js" },
     "./diary-contract": { "types": "./dist/diary-contract.d.ts", "default": "./dist/diary-contract.js" },
     "./graph-document": { "types": "./dist/graph-document.d.ts", "default": "./dist/graph-document.js" },
