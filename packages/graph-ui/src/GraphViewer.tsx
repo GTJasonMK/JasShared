@@ -12,8 +12,8 @@ interface GraphViewerProps {
 
 function OverlayCard({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-sm border border-[var(--color-border)] shadow-sm">
-      <span className="text-[var(--color-gray)]">{children}</span>
+    <div className="bg-[var(--color-surface)] rounded-lg px-3 py-2 text-sm border border-[var(--color-border)] shadow-sm">
+      <span className="text-[var(--color-text-muted)]">{children}</span>
     </div>
   );
 }
@@ -39,10 +39,10 @@ function GraphViewerOverlay({
       </div>
       <button
         onClick={onToggleMinimap}
-        className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 text-sm border border-[var(--color-border)] shadow-sm z-10 hover:bg-white transition-colors"
+        className="absolute bottom-4 right-4 bg-[var(--color-surface)] rounded-lg px-3 py-2 text-sm border border-[var(--color-border)] shadow-sm z-10 hover:bg-[var(--color-surface-hover)] transition-colors min-h-11"
         title={showMinimap ? "隐藏小地图" : "显示小地图"}
       >
-        <span className="text-[var(--color-gray)]">
+        <span className="text-[var(--color-text-muted)]">
           {showMinimap ? "隐藏地图" : "显示地图"}
         </span>
       </button>
@@ -63,8 +63,8 @@ export default function GraphViewer({ data }: GraphViewerProps) {
   }, [data.nodes]);
 
   return (
-    <div className="jas-graph flex flex-col gap-4 xl:flex-row">
-      <div className="relative min-h-[320px] h-[600px] flex-1 rounded-lg overflow-hidden border border-[var(--color-border)]">
+    <div className="jas-graph graph-viewer"><div className="graph-viewer-layout">
+      <div className="graph-viewer-canvas relative min-w-0 min-h-[320px] h-[600px] rounded-lg overflow-hidden border border-[var(--color-border)]">
         <GraphCanvas
           data={data}
           selectedNode={selectedNode}
@@ -80,13 +80,13 @@ export default function GraphViewer({ data }: GraphViewerProps) {
       </div>
 
       {selectedNode ? (
-        <div className="w-full xl:w-[320px] flex-shrink-0 rounded-lg overflow-hidden border border-[var(--color-border)]">
+        <div className="graph-viewer-details rounded-lg overflow-hidden border border-[var(--color-border)]">
           <NodeDetailPanel
             node={selectedNode}
             onClose={() => setSelectedNode(null)}
           />
         </div>
       ) : null}
-    </div>
+    </div></div>
   );
 }

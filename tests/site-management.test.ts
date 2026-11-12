@@ -12,9 +12,10 @@ import { finalizeExport, prepareExport } from "../packages/site-tools/src/export
 import { savePhotos, recoverMediaCleanup } from "../packages/site-tools/src/media";
 import { inspectPublication, publishWorkspace, publicationState } from "../packages/site-tools/src/publish";
 import { runCommand, type CommandRunner } from "../packages/site-tools/src/process";
+import { migrateSiteConfig } from "../packages/content-core/src/site-migration";
 
 function site(): SiteConfig {
-  return { name: "Synthetic site", description: "Synthetic description", footer: "Synthetic author", home: { heading: "Synthetic", accent: "", description: "", notesDescription: "", projectsDescription: "" }, sections: Object.fromEntries(SECTION_IDS.map((id) => [id, { title: id, description: "", enabled: true }])) as SiteConfig["sections"], navigation: [{ target: "home", label: "Home", visible: true }, { target: "notes", label: "Notes", visible: true }], comments: { enabled: false, repo: "", repoId: "", category: "", categoryId: "" } };
+  return { name: "Synthetic site", description: "Synthetic description", footer: "Synthetic author", home: { motto: "Synthetic", description: "" }, sections: Object.fromEntries(SECTION_IDS.map((id) => [id, { title: id, description: "", enabled: true }])) as SiteConfig["sections"], navigation: [{ target: "home", label: "Home", visible: true }, { target: "notes", label: "Notes", visible: true }], comments: { enabled: false, repo: "", repoId: "", category: "", categoryId: "" } };
 }
 function workspace() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "jas-site-"));
@@ -30,9 +31,61 @@ test("site configuration separates navigation visibility from public routes and 
   const config = site();
   config.navigation.push({ target: "page:about", label: "About", visible: true });
   assert.equal(visibleNavigation(config, ["about"]).length, 3);
+  assert.deepEqual(visibleNavigation(config, ["about"])[2], { target: "page:about", href: "/pages/about", label: "About" });
   config.sections.notes.enabled = false;
   assert.deepEqual(visibleNavigation(config, []).map((item) => item.href), ["/"]);
   for (const candidate of [{ ...site(), name: "" }, { ...site(), extra: true }, { ...site(), navigation: [...site().navigation, site().navigation[0]] }, { ...site(), navigation: [{ target: "page:../escape", label: "bad", visible: true }] }, { ...site(), sections: { ...site().sections, home: { title: "Home", description: "", enabled: false } } }]) assert.throws(() => parseSiteConfig(candidate));
+});
+
+test("home upgrade is explicit, rejects unknown fields and preserves unfinished draft text", () => {
+  const previous = { ...site(), home: { heading: "A，", accent: "B", description: "Retained", notesDescription: "Old notes", projectsDescription: "Old projects" } };
+  assert.throws(() => parseSiteConfig(previous));
+  assert.deepEqual(migrateSiteConfig(previous).home, { motto: "A，B", description: "Retained" });
+  assert.deepEqual(migrateSiteConfig(site()), site());
+  assert.throws(() => migrateSiteConfig({ ...previous, home: { ...previous.home, extra: "keep" } }));
+  assert.equal(migrateSiteConfig({ ...previous, home: { ...previous.home, heading: "", accent: "" } }, { draft: true }).home.motto, "");
+});
+
+test("home migration backs up recovery records, rebases matching versions and is repeatable", async () => {
+  const root = workspace();
+  const backup = fs.mkdtempSync(path.join(os.tmpdir(), "jas-home-backup-"));
+  const state = fs.mkdtempSync(path.join(os.tmpdir(), "jas-home-state-"));
+  try {
+    const previous = { ...site(), home: { heading: "Retained", accent: " motto", description: "Retained introduction", notesDescription: "Notes", projectsDescription: "Projects" } };
+    const original = JSON.stringify(previous, null, 2) + "\n";
+    write(root, "content/site.json", original);
+    const key = `site:${fs.realpathSync(root)}`;
+    const record = { site: { ...previous, name: "Unsaved name", home: { ...previous.home, heading: "Unsaved" } }, photos: [], siteVersion: fileVersion(path.join(root, "content/site.json")), photoVersion: "retained-photo-version" };
+    const records = { [key]: record, unrelated: { content: "retained" } };
+    fs.writeFileSync(path.join(state, "editor-drafts.json"), JSON.stringify(records));
+    await migrateWorkspace(root, backup, undefined, { editorStateDirectory: state });
+    assert.equal(fs.readFileSync(path.join(backup, "content/site.json"), "utf8"), original);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(backup, "editor-drafts.json"), "utf8")), records);
+    assert.equal(readSite(root).home.motto, "Retained motto");
+    const restored = JSON.parse(fs.readFileSync(path.join(state, "editor-drafts.json"), "utf8"));
+    assert.equal(restored[key].site.home.motto, "Unsaved motto");
+    assert.equal(restored[key].site.name, "Unsaved name");
+    assert.equal(restored[key].siteVersion, fileVersion(path.join(root, "content/site.json")));
+    assert.equal(restored[key].photoVersion, record.photoVersion);
+    assert.deepEqual(restored.unrelated, records.unrelated);
+    assert.deepEqual(await migrateWorkspace(root, backup, undefined, { editorStateDirectory: state }), []);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(backup, "migration.json"), "utf8")).changed, ["content/site.json", "editor-drafts.json"]);
+    restored[key].siteVersion = "stale-before-upgrade";
+    fs.writeFileSync(path.join(state, "editor-drafts.json"), JSON.stringify(restored));
+    await migrateWorkspace(root, backup, undefined, { editorStateDirectory: state });
+    assert.equal(JSON.parse(fs.readFileSync(path.join(state, "editor-drafts.json"), "utf8"))[key].siteVersion, "stale-before-upgrade");
+  } finally { for (const directory of [root, backup, state]) fs.rmSync(directory, { recursive: true }); }
+});
+
+test("migration rejects a backup directory owned by another workspace before changing content", async () => {
+  const first = workspace(); const second = workspace();
+  const backup = fs.mkdtempSync(path.join(os.tmpdir(), "jas-owned-backup-"));
+  try {
+    await migrateWorkspace(first, backup);
+    const file = path.join(second, "content/site.json"); const before = fs.readFileSync(file);
+    await assert.rejects(migrateWorkspace(second, backup), /不属于当前工作区/);
+    assert.deepEqual(fs.readFileSync(file), before);
+  } finally { for (const directory of [first, second, backup]) fs.rmSync(directory, { recursive: true }); }
 });
 
 test("publication is explicit and independent of roadmap status; draft creation preserves YAML", () => {

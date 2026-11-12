@@ -28,7 +28,7 @@ function DayContextTags({ day }: { day: DiaryDay }) {
   return (
     <div className="flex flex-wrap gap-2">
       {mood ? (
-        <span className="text-xs px-3 py-1 rounded-full border border-[var(--color-gold)]/20 bg-[var(--color-gold)]/8 text-[var(--color-gold)]">
+        <span className="text-xs px-3 py-1 rounded-full border border-[var(--color-secondary)]/20 bg-[var(--color-secondary)]/8 text-[var(--color-secondary)]">
           {mood}
         </span>
       ) : null}
@@ -38,7 +38,7 @@ function DayContextTags({ day }: { day: DiaryDay }) {
       {day.tags.map((tag) => (
         <span
           key={tag}
-          className="text-xs px-3 py-1 rounded-full border border-[var(--color-vermilion)]/12 bg-[var(--color-vermilion)]/6 text-[var(--color-vermilion)]"
+          className="text-xs px-3 py-1 rounded-full border border-[var(--color-primary)]/12 bg-[var(--color-primary)]/6 text-[var(--color-primary)]"
         >
           {tag}
         </span>
@@ -55,8 +55,8 @@ function DiaryInfoIssue({
   message: string;
 }) {
   return (
-    <div className="mb-6 rounded-lg border border-[var(--color-vermilion)]/30 bg-[var(--color-vermilion)]/5 p-4 text-sm text-[var(--color-gray)]">
-      <p className="mb-1 font-medium text-[var(--color-vermilion)]">{title}</p>
+    <div className="mb-6 rounded-lg border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 p-4 text-sm text-[var(--color-text-muted)]">
+      <p className="mb-1 font-medium text-[var(--color-primary)]">{title}</p>
       <p>{message}</p>
     </div>
   );
@@ -77,19 +77,19 @@ export default function DiaryDayView({
       {back}
 
       <header className="mb-8">
-        <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-gold)] mb-3">{host.sections?.diary.title ?? "考研日志"}</p>
+        <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-secondary)] mb-3">{host.sections?.diary.title ?? "考研日志"}</p>
         <div className="flex items-baseline gap-3 mb-2">
-          <span className="text-4xl font-bold text-[var(--color-vermilion)] leading-none">{dateParts.day}</span>
-          <span className="text-sm text-[var(--color-gray)]">{dateParts.year}年{dateParts.month}月</span>
+          <span className="text-4xl font-bold text-[var(--color-primary)] leading-none">{dateParts.day}</span>
+          <span className="text-sm text-[var(--color-text-muted)]">{dateParts.year}年{dateParts.month}月</span>
         </div>
         <h1 className="text-2xl font-bold mb-2">{day.title}</h1>
         {day.excerpt ? (
-          <p className="text-[var(--color-gray)] text-sm leading-relaxed mb-3">{day.excerpt}</p>
+          <p className="text-[var(--color-text-muted)] text-sm leading-relaxed mb-3">{day.excerpt}</p>
         ) : null}
         <DayContextTags day={day} />
       </header>
 
-      <div className="divider-cloud mb-8" />
+      <div className="content-divider mb-8" />
 
       {day.error && !day.entries.some((entry) => entry.error) ? (
         <DiaryInfoIssue title="frontmatter 错误" message={day.error} />
@@ -104,7 +104,7 @@ export default function DiaryDayView({
         <div className="space-y-0">
           {day.entries.map((entry, index) => (
             <div key={entry.id}>
-              {index > 0 ? <div className="divider-cloud my-8" /> : null}
+              {index > 0 ? <div className="content-divider my-8" /> : null}
               <DiaryEntryArticle entry={entry} />
             </div>
           ))}

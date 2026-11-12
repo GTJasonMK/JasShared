@@ -59,7 +59,7 @@ function PhotoViewer({ photo, index, count, onMove, onClose, trigger }: {
       if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
   }, [trigger]);
-  return <dialog ref={dialogRef} className="photography-viewer" aria-labelledby="photo-viewer-title"
+  return <dialog ref={dialogRef} className="photography-viewer" data-theme="dark" aria-labelledby="photo-viewer-title"
     onCancel={(event) => { event.preventDefault(); onClose(); }}
     onKeyDown={(event) => {
       if (event.key === "ArrowLeft" || event.key === "ArrowRight") {

@@ -1,11 +1,11 @@
 /* ========================================
-   Markdown 预览样式（与 JasBlog globals.css 完全一致）
+   共享 Markdown 排版
    ======================================== */
 
 .prose-chinese {
   font-size: 1.05rem;
-  line-height: 2;
-  color: var(--color-text-muted);
+  line-height: 1.85;
+  color: var(--color-text);
 }
 
 /* 移除最后一个子元素的底部 margin，避免多余空白 */
@@ -66,7 +66,7 @@
 
 .prose-chinese del {
   text-decoration: line-through;
-  color: var(--color-gray);
+  color: var(--color-text-muted);
 }
 
 /* 链接 */
@@ -130,7 +130,7 @@
   border-left: 4px solid var(--color-primary);
   padding: 0.5em 1em;
   margin: 1.5em 0;
-  background-color: var(--color-paper-dark);
+  background-color: var(--color-surface-dark);
   border-radius: 0 8px 8px 0;
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
@@ -147,24 +147,24 @@
 
 /* 行内代码 */
 .prose-chinese code {
-  background-color: var(--color-paper-dark);
+  background-color: var(--color-surface-dark);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.9em;
-  font-family: "Fira Code", "JetBrains Mono", Consolas, monospace;
+  font-family: var(--font-code);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
 /* 代码块 */
 .prose-chinese pre {
-  background: #1e1e2e;
-  color: #cdd6f4;
+  background: var(--code-bg);
+  color: var(--code-text);
   padding: 1.5em;
   border-radius: 8px;
   overflow-x: auto;
   margin: 1.5em 0;
-  font-family: "Fira Code", "JetBrains Mono", Consolas, monospace;
+  font-family: var(--font-code);
   font-size: 0.9em;
   line-height: 1.6;
 }
@@ -184,11 +184,11 @@
 }
 
 .prose-chinese th {
-  background-color: var(--color-paper-dark);
+  background-color: var(--color-surface-dark);
   font-weight: 600;
   text-align: left;
   padding: 0.75em 1em;
-  border: 1px solid var(--color-paper-darker);
+  border: 1px solid var(--color-border);
   vertical-align: top;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -196,14 +196,14 @@
 
 .prose-chinese td {
   padding: 0.75em 1em;
-  border: 1px solid var(--color-paper-darker);
+  border: 1px solid var(--color-border);
   vertical-align: top;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
 .prose-chinese tr:nth-child(even) {
-  background-color: var(--color-paper-dark);
+  background-color: var(--color-surface-dark);
 }
 
 /* 分割线 */
@@ -222,85 +222,85 @@
 }
 
 /* ========================================
-   highlight.js 代码高亮主题 (Catppuccin Mocha 风格)
+   代码高亮使用共享主题变量
    ======================================== */
 
 .hljs {
-  background: #1e1e2e;
-  color: #cdd6f4;
+  background: var(--code-bg);
+  color: var(--code-text);
 }
 
 .hljs-keyword,
 .hljs-selector-tag,
 .hljs-built_in {
-  color: #cba6f7;
+  color: var(--code-keyword);
 }
 
 .hljs-string,
 .hljs-attr {
-  color: #a6e3a1;
+  color: var(--code-string);
 }
 
 .hljs-number,
 .hljs-literal {
-  color: #fab387;
+  color: var(--code-number);
 }
 
 .hljs-comment {
-  color: #6c7086;
+  color: var(--code-comment);
   font-style: italic;
 }
 
 .hljs-function,
 .hljs-title {
-  color: #89b4fa;
+  color: var(--code-function);
 }
 
 .hljs-variable,
 .hljs-template-variable {
-  color: #f38ba8;
+  color: var(--code-tag);
 }
 
 .hljs-type,
 .hljs-class .hljs-title {
-  color: #f9e2af;
+  color: var(--code-type);
 }
 
 .hljs-punctuation {
-  color: #9399b2;
+  color: var(--code-text);
 }
 
 .hljs-property {
-  color: #89dceb;
+  color: var(--code-type);
 }
 
 .hljs-operator {
-  color: #94e2d5;
+  color: var(--code-type);
 }
 
 .hljs-meta {
-  color: #f5c2e7;
+  color: var(--code-keyword);
 }
 
 .hljs-regexp {
-  color: #f5c2e7;
+  color: var(--code-keyword);
 }
 
 .hljs-tag {
-  color: #89b4fa;
+  color: var(--code-tag);
 }
 
 .hljs-name {
-  color: #89b4fa;
+  color: var(--code-tag);
 }
 
 .hljs-attribute {
-  color: #f9e2af;
+  color: var(--code-attr);
 }
 
 .hljs-selector-class,
 .hljs-selector-id {
-  color: #cba6f7;
+  color: var(--code-keyword);
 }
 
 .hljs-emphasis {
@@ -318,41 +318,51 @@
 .code-block-wrapper {
   position: relative;
   margin: 1.5em 0;
+  background: var(--code-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 .code-block-wrapper pre {
   margin: 0;
-  padding-top: 2.5em;
+  padding-top: 1em;
 }
 
+.code-block-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .25rem .75rem .25rem 1.25rem; min-height: 52px; }
 .code-block-lang {
-  position: absolute;
-  top: 0.5em;
-  left: 1em;
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 0.75rem;
-  color: #6c7086;
-  font-family: "Fira Code", "JetBrains Mono", Consolas, monospace;
+  color: var(--code-comment);
+  font-family: var(--font-code);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+.code-copy-button { flex-shrink: 0; margin-left: auto; min-width: 64px; min-height: 44px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--code-bg); color: var(--color-text-muted); padding: .375rem .75rem; font-size: .75rem; }
+.code-copy-button:hover { background: var(--color-primary-light); color: var(--color-primary-dark); }
+.code-copy-button[data-status="failed"] { color: var(--color-danger); }
+.reading-frame > a { display: inline-flex; align-items: center; min-height: 44px; }
 
 /* ========================================
    标题锚点链接
    ======================================== */
 
 .heading-anchor {
-  position: absolute;
-  left: -1.5em;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-gray-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  vertical-align: middle;
+  font-size: .75em;
+  color: var(--color-text-subtle);
   font-weight: 400;
   text-decoration: none;
   opacity: 0;
   transition: opacity 0.2s;
 }
 
-.group\/heading:hover .heading-anchor {
+.group\/heading:hover .heading-anchor, .heading-anchor:focus-visible {
   opacity: 1;
 }
 
@@ -447,9 +457,9 @@
 .prose-chinese .footnotes {
   margin-top: 3em;
   padding-top: 1.5em;
-  border-top: 1px solid var(--color-paper-darker);
+  border-top: 1px solid var(--color-border);
   font-size: 0.9em;
-  color: var(--color-gray);
+  color: var(--color-text-muted);
 }
 
 .prose-chinese .footnotes ol {
@@ -493,9 +503,9 @@
   display: inline-block;
   padding: 0.2em 0.5em;
   font-size: 0.85em;
-  font-family: "Fira Code", "JetBrains Mono", Consolas, monospace;
-  background: var(--color-paper-dark);
-  border: 1px solid var(--color-paper-darker);
+  font-family: var(--font-code);
+  background: var(--color-surface-dark);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
@@ -508,7 +518,7 @@
   display: flex;
   justify-content: center;
   padding: 1.5em;
-  background: var(--color-paper-dark);
+  background: var(--color-surface-dark);
   border-radius: 8px;
   overflow-x: auto;
 }
@@ -523,9 +533,9 @@
   justify-content: center;
   align-items: center;
   padding: 2em;
-  background: var(--color-paper-dark);
+  background: var(--color-surface-dark);
   border-radius: 8px;
-  color: var(--color-gray);
+  color: var(--color-text-muted);
 }
 
 .mermaid-error {
@@ -550,7 +560,7 @@
 .mermaid-error-code {
   font-size: 0.85em;
   padding: 0.5em;
-  background: var(--color-paper-dark);
+  background: var(--color-surface-dark);
   border-radius: 4px;
   overflow-x: auto;
 }
@@ -576,98 +586,21 @@
 }
 
 /* ========================================
-   深色主题 - Markdown 预览样式覆盖
-   ======================================== */
-
-/* 行内代码 */
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .prose-chinese code:not(pre code) {
-  background-color: #2a2a2e;
-}
-
-/* 引用块 */
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .prose-chinese blockquote {
-  background-color: var(--color-paper-dark);
-}
-
-/* 表格 */
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .prose-chinese th {
-  background-color: var(--color-surface-dark);
-}
-
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .prose-chinese tr:nth-child(even) {
-  background-color: var(--color-paper-dark);
-}
-
-/* GitHub Alert 深色背景 */
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .alert-note {
-  background-color: rgba(56, 139, 253, 0.15);
-}
-
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .alert-tip {
-  background-color: rgba(46, 160, 67, 0.15);
-}
-
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .alert-important {
-  background-color: rgba(130, 80, 223, 0.15);
-}
-
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .alert-warning {
-  background-color: rgba(187, 128, 9, 0.15);
-}
-
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .alert-caution {
-  background-color: rgba(218, 54, 51, 0.15);
-}
-
-/* 键盘按键 */
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .prose-chinese kbd {
-  background: var(--color-paper-dark);
-  border-color: var(--color-border);
-}
-
-/* Mermaid 容器 */
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .mermaid-container {
-  background: var(--color-paper-dark);
-}
-
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .mermaid-loading {
-  background: var(--color-paper-dark);
-}
-
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .mermaid-error-code {
-  background: var(--color-paper-dark);
-}
-
-/* 脚注分割线 */
-:is(.dark .jas-content, .jas-content[data-theme="dark"]) .prose-chinese .footnotes {
-  border-top-color: var(--color-border);
-}
-
-/* ========================================
    JasBlog 组件样式
    ======================================== */
 
-/* 印章效果 */
 /* 文章卡片 */
 .card-hover {
   box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-paper-darker);
-  background: var(--color-card);
-  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast);
 }
 
 .card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--color-vermilion);
-}
-
-/* 云纹分割线 */
-.divider-cloud {
-  height: 24px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 24'%3E%3Cpath d='M0 12 Q25 4 50 12 T100 12' fill='none' stroke='%23c94043' stroke-width='1' opacity='0.2'/%3E%3C/svg%3E");
-  background-repeat: repeat-x;
-  background-position: center;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
 }
 
 /* 标签 */
@@ -675,23 +608,25 @@
   display: inline-block;
   font-size: 0.75rem;
   padding: 4px 12px;
-  background: var(--color-paper-dark);
-  color: var(--color-gray);
+  background: var(--color-surface-dark);
+  color: var(--color-text-muted);
   border-radius: 20px;
 }
+.tag:is(button, a) { min-height: 44px; display: inline-flex; align-items: center; }
+.tag:is(button, a):hover, .tag[aria-pressed="true"] { background: var(--color-primary-light); color: var(--color-primary-dark); }
 
 /* 主按钮 */
 .btn-primary {
   display: inline-block;
   padding: 10px 24px;
-  background: var(--color-vermilion);
-  color: white;
-  border-radius: 6px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-sm);
   font-weight: 500;
 }
 
 .btn-primary:hover {
-  background: var(--color-vermilion-dark);
+  background: var(--color-primary-dark);
 }
 
 /* 目录滚动条 */
@@ -704,10 +639,10 @@
 }
 
 .toc-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--color-paper-darker);
+  background: var(--color-border);
   border-radius: 2px;
 }
 
 .toc-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--color-gray-light);
+  background: var(--color-text-subtle);
 }

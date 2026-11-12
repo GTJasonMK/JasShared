@@ -1,6 +1,6 @@
 {
   "name": "@jas/content-core",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -14,7 +14,8 @@
     "./preprocess-alerts": { "types": "./dist/preprocess-alerts.d.ts", "default": "./dist/preprocess-alerts.js" },
     "./roadmap-content": { "types": "./dist/roadmap-content.d.ts", "default": "./dist/roadmap-content.js" },
     "./roadmap-status": { "types": "./dist/roadmap-status.d.ts", "default": "./dist/roadmap-status.js" },
-    "./writing-guide": { "types": "./dist/writing-guide.d.ts", "default": "./dist/writing-guide.js" }
+    "./writing-guide": { "types": "./dist/writing-guide.d.ts", "default": "./dist/writing-guide.js" },
+    "./site-migration": { "types": "./dist/site-migration.d.ts", "default": "./dist/site-migration.js" }
   },
   "dependencies": {
     "@jas/graph-core": "0.2.0",

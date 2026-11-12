@@ -12,6 +12,8 @@ const names = ["graph-core", "content-core", "agent-core", "graph-ui", "content-
 const requested = process.argv.slice(2);
 if (requested.some((name) => !names.includes(name))) throw new Error("未知的公共包。");
 const selected = new Set(requested);
+const hostThemeTokens = new Set();
+postcss.parse(await readFile(path.join(root, "packages/content-ui/src/theme.css"), "utf8")).walkDecls(/^--/, (declaration) => hostThemeTokens.add(declaration.prop));
 async function includeDependencies(name) {
   const manifest = JSON.parse(await readFile(path.join(root, "packages", name, "package.json"), "utf8"));
   for (const dependency of Object.keys(manifest.dependencies ?? {})) {
@@ -63,6 +65,11 @@ for (const name of names) {
   if (name.endsWith("-ui")) {
     const cssPath = path.join(source, "styles.css");
     const result = await postcss([tailwind({ base: directory, optimize: true })]).process(await readFile(cssPath, "utf8"), { from: cssPath });
+    // Scoped Tailwind defaults must not replace the host's typography, radii or shadows.
+    result.root.walkRules((rule) => {
+      if (!/^:root(?:\s*,\s*:host)?$/.test(rule.selector)) return;
+      rule.walkDecls((declaration) => { if (hostThemeTokens.has(declaration.prop)) declaration.remove(); });
+    });
     const scope = name === "graph-ui" ? ".jas-graph" : ".jas-content";
     result.root.walkDecls("src", (declaration) => {
       declaration.value = declaration.value.replace(/url\(["']?[^)"']*\/fonts\/([^\)"']+)["']?\)/g, 'url("./fonts/$1")');
@@ -76,6 +83,7 @@ for (const name of names) {
     result.root.walkAtRules("layer", (rule) => { if (rule.nodes) rule.replaceWith(...rule.nodes); else rule.remove(); });
     await writeFile(path.join(dist, "styles.css"), result.root.toString());
     if (name === "content-ui") {
+      await cp(path.join(source, "theme.css"), path.join(dist, "theme.css"));
       const require = createRequire(path.join(directory, "package.json"));
       const katexDirectory = path.dirname(require.resolve("katex/package.json"));
       await cp(path.join(katexDirectory, "dist/fonts"), path.join(dist, "fonts"), { recursive: true });

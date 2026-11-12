@@ -2,9 +2,10 @@ export const SECTION_IDS = ["home", "notes", "projects", "diary", "graphs", "roa
 export type SectionId = typeof SECTION_IDS[number];
 export interface SiteSection { title: string; description: string; enabled: boolean }
 export type NavigationItem = { target: SectionId | `page:${string}`; label: string; visible: boolean };
+export type ResolvedNavigationItem = Pick<NavigationItem, "target" | "label"> & { href: string };
 export interface SiteConfig {
   name: string; description: string;
-  home: { heading: string; accent: string; description: string; notesDescription: string; projectsDescription: string };
+  home: { motto: string; description: string };
   footer: string; sections: Record<SectionId, SiteSection>; navigation: NavigationItem[];
   comments: { enabled: boolean; repo: string; repoId: string; category: string; categoryId: string };
 }
@@ -21,7 +22,7 @@ export function parseSiteConfig(value: unknown, options: { draft?: boolean } = {
   const text = (input: unknown, label: string, empty = false): string => { if (typeof input !== "string" || (!options.draft && !empty && !input.trim())) throw new Error(`${label} 必须填写文本。`); return options.draft ? input : input.trim(); };
   const boolean = (input: unknown, label: string): boolean => { if (typeof input !== "boolean") throw new Error(`${label} 必须为布尔值。`); return input; };
   const row = object(value, "站点配置", ["name", "description", "home", "footer", "sections", "navigation", "comments"]);
-  const home = object(row.home, "首页", ["heading", "accent", "description", "notesDescription", "projectsDescription"]);
+  const home = object(row.home, "首页", ["motto", "description"]);
   const sections = object(row.sections, "栏目", SECTION_IDS);
   const parsedSections = Object.fromEntries(SECTION_IDS.map((id) => {
     const section = object(sections[id], id, ["title", "description", "enabled"]);
@@ -42,12 +43,12 @@ export function parseSiteConfig(value: unknown, options: { draft?: boolean } = {
   const enabled = boolean(comments.enabled, "评论开关");
   const parsedComments = { enabled, repo: text(comments.repo, "评论仓库", !enabled), repoId: text(comments.repoId, "评论仓库 ID", !enabled), category: text(comments.category, "评论分类", !enabled), categoryId: text(comments.categoryId, "评论分类 ID", !enabled) };
   if (!options.draft && enabled && !/^[\w.-]+\/[\w.-]+$/.test(parsedComments.repo)) throw new Error("评论仓库必须为 owner/repo。");
-  return { name: text(row.name, "站点名称"), description: text(row.description, "站点介绍"), footer: text(row.footer, "页脚"), home: { heading: text(home.heading, "首页标题"), accent: text(home.accent, "首页强调文字", true), description: text(home.description, "首页介绍", true), notesDescription: text(home.notesDescription, "首页笔记说明", true), projectsDescription: text(home.projectsDescription, "首页项目说明", true) }, sections: parsedSections, navigation, comments: parsedComments };
+  return { name: text(row.name, "站点名称"), description: text(row.description, "站点介绍"), footer: text(row.footer, "页脚"), home: { motto: text(home.motto, "首页格言"), description: text(home.description, "首页介绍", true) }, sections: parsedSections, navigation, comments: parsedComments };
 }
 
 export function navigationHref(target: NavigationItem["target"]): string { return target.startsWith("page:") ? `/pages/${encodeURIComponent(target.slice(5))}` : target === "home" ? "/" : `/${target}`; }
 
-export function visibleNavigation(site: SiteConfig, publishedPages: readonly string[]): Array<{ href: string; label: string }> {
+export function visibleNavigation(site: SiteConfig, publishedPages: readonly string[]): ResolvedNavigationItem[] {
   const pages = new Set(publishedPages);
-  return site.navigation.filter((item) => item.visible && (item.target.startsWith("page:") ? pages.has(item.target.slice(5)) : site.sections[item.target as SectionId].enabled)).map((item) => ({ href: navigationHref(item.target), label: item.label }));
+  return site.navigation.filter((item) => item.visible && (item.target.startsWith("page:") ? pages.has(item.target.slice(5)) : site.sections[item.target as SectionId].enabled)).map((item) => ({ target: item.target, href: navigationHref(item.target), label: item.label }));
 }

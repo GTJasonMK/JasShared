@@ -1,6 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { createHash, randomUUID } from "node:crypto";
+
+export function editorStateDirectory(): string {
+  return path.join(process.platform === "win32" ? process.env.APPDATA ?? path.join(os.homedir(), "AppData/Roaming") : process.env.XDG_DATA_HOME ?? path.join(os.homedir(), ".local/share"), "JasBlogEditor");
+}
 
 export function fileVersion(file: string): string { return createHash("sha256").update(fs.readFileSync(file)).digest("hex"); }
 

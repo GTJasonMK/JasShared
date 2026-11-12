@@ -56,7 +56,7 @@ function KnowledgeEdge({
   // 连线颜色
   const edgeColor = data?.color || "default";
   const strokeColor = (style.stroke as string) || getEdgeStroke(edgeColor);
-  const selectedColor = selected ? "var(--color-vermilion)" : strokeColor;
+  const selectedColor = selected ? "var(--color-primary)" : strokeColor;
 
   return (
     <>
@@ -84,7 +84,7 @@ function KnowledgeEdge({
       />
 
       {/* 动画效果 - 流动的点 */}
-      <circle r="3" fill={strokeColor}>
+      <circle className="graph-edge-flow" r="3" fill={strokeColor}>
         <animateMotion dur="2s" repeatCount="indefinite" path={path} />
       </circle>
 
@@ -99,8 +99,8 @@ function KnowledgeEdge({
             }}
             className={`px-2 py-0.5 text-[10px] font-medium rounded-full transition-all duration-150
               ${selected
-                ? "bg-[var(--color-vermilion)] text-white shadow-md"
-                : "bg-white text-[var(--color-gray)] border border-[var(--color-border)] hover:border-[var(--color-vermilion)] hover:text-[var(--color-vermilion)]"
+                ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md"
+                : "bg-[var(--color-surface)] text-[var(--color-text-muted)] border border-[var(--color-border)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
               }
             `}
           >

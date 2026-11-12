@@ -1,8 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import os from "node:os";
 import { parseSiteConfig } from "@jas/content-core";
-import { withWorkspaceLock, workspaceFile, writeVersioned } from "./files";
+import { editorStateDirectory, withWorkspaceLock, workspaceFile, writeVersioned } from "./files";
 import { loadWorkspace, readSite, SITE_FILE } from "./workspace";
 import { importImage, importPhoto, savePhotos, recoverMediaCleanup } from "./media";
 import { finalizeExport, prepareExport } from "./export";
@@ -18,11 +17,11 @@ async function main() {
   const root = fs.realpathSync(process.cwd());
   if (command === "prepare") { prepareExport(root); return; }
   if (command === "finalize") { finalizeExport(root); return; }
-  if (command === "version") { output({ protocol: TOOL_PROTOCOL, version: "0.4.0" }); return; }
+  if (command === "version") { output({ protocol: TOOL_PROTOCOL, version: "0.5.0" }); return; }
   const raw = process.stdin.isTTY ? "" : fs.readFileSync(0, "utf8");
   const input: Record<string, unknown> = raw.trim() ? JSON.parse(raw) : {};
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("命令输入必须为对象。");
-  if (input.stateDirectory === undefined) input.stateDirectory = path.join(process.platform === "win32" ? process.env.APPDATA ?? path.join(os.homedir(), "AppData/Roaming") : process.env.XDG_DATA_HOME ?? path.join(os.homedir(), ".local/share"), "JasBlogEditor");
+  if (input.stateDirectory === undefined) input.stateDirectory = editorStateDirectory();
   const text = (key: string): string => { const value = input[key]; if (typeof value !== "string" || !value.trim()) throw new Error(`缺少 ${key}。`); return value; };
   let result: unknown;
   switch (command) {
@@ -49,7 +48,7 @@ async function main() {
       if (input.retryFailed !== undefined && typeof input.retryFailed !== "boolean") throw new Error("重试选项无效。");
       result = await publishWorkspace(root, text("stateDirectory"), (state) => output({ type: "progress", state }), { retryFailed: input.retryFailed === true }); break;
     }
-    case "migrate": result = await migrateWorkspace(root, text("backupDirectory"), parseSiteConfig(input.site)); break;
+    case "migrate": result = await migrateWorkspace(root, text("backupDirectory"), input.site === undefined ? undefined : parseSiteConfig(input.site), { editorStateDirectory: text("stateDirectory") }); break;
     case "check_document_delete": {
       const relative = text("relative"); workspaceFile(root, relative);
       if (/^content\/pages\/[^/]+\.md$/i.test(relative)) {

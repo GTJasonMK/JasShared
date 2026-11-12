@@ -2,8 +2,7 @@
 import { useMemo, type ReactNode } from "react";
 import { contentDisplay, extractHeadingsFromContent, type CoverImage, type PageMetadata } from "@jas/content-core";
 import ArticleBody from "./ArticleBody";
-import { TableOfContents } from "./TableOfContents";
-import { BackToTop } from "./BackToTop";
+import { ReadingLayout } from "./ReadingLayout";
 import { useContentHost, type PreviewLayout } from "./ContentHost";
 
 export function ContentCover({ cover, lazy = false }: { cover: CoverImage; lazy?: boolean }) {
@@ -15,13 +14,10 @@ export function PageView({ page, comments, layout = "page" }: { page: PageMetada
   const host = useContentHost();
   const display = contentDisplay(page, "page");
   const headings = useMemo(() => extractHeadingsFromContent(page.content), [page.content]);
-  return <article className={`jas-content ${layout === "pane" ? "min-w-0 py-6" : "max-w-3xl mx-auto px-6 py-12"}`}>
-    <header className="mb-10"><h1 className="text-3xl font-bold break-words">{page.title}</h1>{page.description && <p className="text-[var(--color-gray)] mt-4">{page.description}</p>}</header>
-    {page.error && <p role="alert" className="text-red-700 mb-4">{page.error}</p>}
+  return <ReadingLayout layout={layout} headings={display.toc ? headings : []} header={<><h1>{page.title}</h1>{page.description && <p className="text-[var(--color-text-muted)] mt-4">{page.description}</p>}</>}>
+    {page.error && <p role="alert" className="text-[var(--color-danger)] mb-4">{page.error}</p>}
     {page.display?.cover && <ContentCover cover={page.display.cover} />}
     <ArticleBody content={page.content} />
-    {display.toc && headings.length > 0 && layout === "page" && <TableOfContents headings={headings} />}
-    {display.comments && host.commentsEnabled !== false && comments && <section className="mt-12"><h2 className="text-xl mb-6">评论与讨论</h2>{comments}</section>}
-    <BackToTop />
-  </article>;
+    {display.comments && host.commentsEnabled !== false && comments && <section className="content-comments"><h2>评论与讨论</h2>{comments}</section>}
+  </ReadingLayout>;
 }

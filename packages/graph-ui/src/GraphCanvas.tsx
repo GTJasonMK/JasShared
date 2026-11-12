@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useEffect, useRef } from "react";
+import { useCallback, useMemo, useEffect, useLayoutEffect, useRef } from "react";
 import {
   ReactFlow,
   Controls,
@@ -20,12 +20,11 @@ import {
 
 import KnowledgeNode from "./KnowledgeNode";
 import KnowledgeEdge from "./KnowledgeEdge";
+import { getNodePalette } from "./nodePalette";
 import {
   type GraphData,
   type KnowledgeNodeData,
-  NODE_COLORS,
   getEdgeStroke,
-  getNodeColor,
 } from "@jas/graph-core";
 
 // 自定义节点类型 - 使用类型断言绕过严格检查
@@ -50,16 +49,7 @@ function GraphCanvasInner({ data, selectedNode, onNodeSelect, showMinimap = true
   const [edges, setEdges, onEdgesChange] = useEdgesState(data.edges as Edge[]);
   const { getViewport, setViewport } = useReactFlow();
 
-  // 记录状态
   const containerRef = useRef<HTMLDivElement>(null);
-  const prevSelectedRef = useRef<boolean>(false);
-  const snapshotRef = useRef<{
-    viewport: { x: number; y: number; zoom: number };
-    width: number;
-  } | null>(null);
-
-  // 面板宽度 + 间距
-  const PANEL_WIDTH = 320 + 16;
 
   useEffect(() => {
     const selectedNodeId = selectedNode?.id ?? null;
@@ -72,69 +62,35 @@ function GraphCanvasInner({ data, selectedNode, onNodeSelect, showMinimap = true
     setEdges(data.edges as Edge[]);
   }, [data.edges, data.nodes, selectedNode?.id, setEdges, setNodes]);
 
-  // 处理节点点击 - 在状态变化前记录当前视口和宽度
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    snapshotRef.current = {
-      viewport: getViewport(),
-      width: containerRef.current?.offsetWidth || 0,
-    };
     onNodeSelect(node);
-  }, [onNodeSelect, getViewport]);
+  }, [onNodeSelect]);
 
-  // 处理画布点击（取消选择）- 同样记录当前状态
   const onPaneClick = useCallback(() => {
-    snapshotRef.current = {
-      viewport: getViewport(),
-      width: containerRef.current?.offsetWidth || 0,
-    };
     onNodeSelect(null);
-  }, [onNodeSelect, getViewport]);
+  }, [onNodeSelect]);
 
-  // 当选中状态变化时，根据宽度比例调整视口
-  useEffect(() => {
-    const isSelected = selectedNode !== null;
-
-    if (prevSelectedRef.current !== isSelected) {
-      // 获取当前视口（DOM 更新后的状态）
-      const currentViewport = getViewport();
-      const newWidth = containerRef.current?.offsetWidth || 0;
-
-      // 使用快照（如果有），否则根据面板宽度计算预期的旧宽度
-      let oldViewport = snapshotRef.current?.viewport || currentViewport;
-      let oldWidth = snapshotRef.current?.width;
-
-      if (!oldWidth || oldWidth === 0) {
-        // 快照不存在（如点击关闭按钮），计算预期的旧宽度
-        // 面板打开时：旧宽度 = 新宽度 + 面板宽度
-        // 面板关闭时：旧宽度 = 新宽度 - 面板宽度
-        oldWidth = isSelected ? newWidth + PANEL_WIDTH : newWidth - PANEL_WIDTH;
+  useLayoutEffect(() => {
+    const container = containerRef.current!;
+    let width = container.getBoundingClientRect().width;
+    // Track actual canvas width so opening details preserves the user's visible graph area.
+    const observer = new ResizeObserver(([entry]) => {
+      const next = entry.contentRect.width;
+      if (width > 0 && next > 0 && next !== width) {
+        const viewport = getViewport();
+        const ratio = next / width;
+        void setViewport({ x: viewport.x * ratio, y: viewport.y, zoom: viewport.zoom * ratio }, { duration: 0 });
       }
-
-      // 延迟执行，等待 DOM 更新完成
-      const timer = setTimeout(() => {
-        if (oldWidth > 0 && newWidth > 0) {
-          const ratio = newWidth / oldWidth;
-
-          // 按宽度比例调整视口
-          setViewport({
-            x: oldViewport.x * ratio,
-            y: oldViewport.y,
-            zoom: oldViewport.zoom * ratio,
-          }, { duration: 300 });
-        }
-      }, 50);
-
-      prevSelectedRef.current = isSelected;
-      snapshotRef.current = null; // 使用后清除快照
-      return () => clearTimeout(timer);
-    }
-  }, [selectedNode, getViewport, setViewport, PANEL_WIDTH]);
+      width = next;
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [getViewport, setViewport]);
 
   // MiniMap 节点颜色
   const nodeColor = useCallback((node: Node) => {
     const nodeData = node.data as KnowledgeNodeData;
-    const color = getNodeColor(nodeData.color);
-    return NODE_COLORS[color].bg;
+    return getNodePalette(nodeData.color).bg;
   }, []);
 
   // 为节点添加类型
@@ -200,7 +156,7 @@ function GraphCanvasInner({ data, selectedNode, onNodeSelect, showMinimap = true
         elementsSelectable={true}
         panOnScroll
         selectionOnDrag={false}
-        className="bg-[var(--color-paper)]"
+        className="bg-[var(--color-surface)]"
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{
           type: "centerEdge",
@@ -214,15 +170,16 @@ function GraphCanvasInner({ data, selectedNode, onNodeSelect, showMinimap = true
         />
         <Controls
           showInteractive={false}
-          className="!bg-white !border-[var(--color-border)] !shadow-md"
+          className="!bg-[var(--color-surface)] !border-[var(--color-border)] !shadow-md"
         />
         {showMinimap && (
           <MiniMap
+            maskColor="color-mix(in srgb, var(--color-surface-dark) 70%, transparent)"
             nodeColor={nodeColor}
             nodeStrokeWidth={2}
             zoomable
             pannable
-            className="!bg-white !border-[var(--color-border)]"
+            className="!bg-[var(--color-surface)] !border-[var(--color-border)]"
           />
         )}
       </ReactFlow>

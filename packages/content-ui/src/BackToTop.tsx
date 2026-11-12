@@ -22,8 +22,8 @@ export function BackToTop() {
   }, [container]);
   if (!visible) return null;
   return <div className="jas-content"><button aria-label="返回顶部" title="返回顶部"
-    className="w-10 h-10 bg-[var(--color-vermilion)] text-white rounded-full shadow-lg flex items-center justify-center z-50"
-    style={{ position: "fixed", ...offset }} onClick={() => getScrollTarget(container)?.scrollTo({ top: 0, behavior: "smooth" })}>
+    className="w-11 h-11 bg-[var(--color-primary)] text-[var(--color-on-primary)] rounded-full shadow-lg flex items-center justify-center z-50"
+    style={{ position: "fixed", ...offset }} onClick={() => getScrollTarget(container)?.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" })}>
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
   </button></div>;
 }

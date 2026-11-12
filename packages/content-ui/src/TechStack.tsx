@@ -69,7 +69,7 @@ export function TechStack({ items, title = "技术栈" }: TechStackProps) {
 
   return (
     <div className="jas-content my-6">
-      <h3 className="text-lg font-semibold mb-4 text-[var(--color-ink)]">{title}</h3>
+      <h3 className="text-lg font-semibold mb-4 text-[var(--color-text)]">{title}</h3>
       <div className="flex flex-wrap gap-3">
         {items.map((item, index) => {
           const bgColor = item.color || techColors[item.name] || "#6B7280";

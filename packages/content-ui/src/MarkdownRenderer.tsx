@@ -8,7 +8,7 @@ import { MermaidDiagram } from "./MermaidDiagram";
 import { resolveImageDimensions } from "./imageDimensions";
 import { extractText } from "./text";
 import { preprocessAlerts } from "@jas/content-core/preprocess-alerts";
-import { useContentHost } from "./ContentHost";
+import { scrollToHeading, useContentHost } from "./ContentHost";
 import { GraphBlock } from "./GraphBlock";
 import { parseGraphData } from "@jas/graph-core";
 import { assignHeadingIds } from "./headingIds";
@@ -26,27 +26,29 @@ type MarkdownLinkRenderer = (
 
 // 代码块复制按钮组件
 function CopyButton({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
   const timeoutRef = useRef<number | null>(null);
+  const requestRef = useRef(0);
 
   const handleCopy = useCallback(async () => {
+    const request = ++requestRef.current;
+    if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
     try {
       await navigator.clipboard.writeText(code);
-      setCopied(true);
-      if (timeoutRef.current !== null) {
-        clearTimeout(timeoutRef.current);
-      }
+      if (request !== requestRef.current) return;
+      setStatus("copied");
       timeoutRef.current = window.setTimeout(() => {
-        setCopied(false);
+        setStatus("idle");
         timeoutRef.current = null;
       }, 2000);
-    } catch (error) {
-      console.error("复制代码失败:", error);
+    } catch {
+      if (request === requestRef.current) setStatus("failed");
     }
   }, [code]);
 
   useEffect(() => {
     return () => {
+      requestRef.current++;
       if (timeoutRef.current !== null) {
         clearTimeout(timeoutRef.current);
       }
@@ -55,16 +57,15 @@ function CopyButton({ code }: { code: string }) {
 
   return (
     <button
+      type="button"
       onClick={handleCopy}
-      className="absolute top-3 right-3 px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-      style={{
-        background: "rgba(255,255,255,0.1)",
-        color: "#cdd6f4",
-        border: "1px solid rgba(255,255,255,0.15)",
-      }}
-      aria-label="复制代码"
+      className="code-copy-button"
+      data-status={status}
+      title={status === "failed" ? "复制失败，请检查浏览器的剪贴板权限后重试。" : "复制代码"}
+      aria-label={status === "idle" ? "复制代码" : status === "copied" ? "代码已复制" : "复制失败，重试复制代码"}
+      aria-live="polite"
     >
-      {copied ? "已复制" : "复制"}
+      {status === "copied" ? "已复制" : status === "failed" ? "复制失败" : "复制"}
     </button>
   );
 }
@@ -103,7 +104,7 @@ function ImageZoom({
         />
         </button>
         {alt && (
-          <span className="block text-center text-sm text-[var(--color-gray)] mt-2">
+          <span className="block text-center text-sm text-[var(--color-text-muted)] mt-2">
             {alt}
           </span>
         )}
@@ -128,8 +129,8 @@ function ZoomDialog({ src, alt, onClose }: { src: string; alt?: string; onClose:
       if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus({ preventScroll: true });
     };
   }, []);
-  return <dialog ref={ref} aria-label={alt || "图片预览"} onCancel={(event) => { event.preventDefault(); onClose(); }} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} className="jas-content p-4 rounded-lg max-w-[95vw] max-h-[95vh]">
-    <button type="button" onClick={onClose} className="block ml-auto mb-2">关闭</button>
+  return <dialog ref={ref} aria-label={alt || "图片预览"} onCancel={(event) => { event.preventDefault(); onClose(); }} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }} className="jas-content p-4 rounded-lg bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] max-w-[95vw] max-h-[95vh]">
+    <button type="button" onClick={onClose} className="block ml-auto mb-2 min-h-11 px-3">关闭</button>
     <Image src={src} alt={alt || ""} width={1200} height={675} className="max-w-[90vw] max-h-[80vh] object-contain rounded-lg" />
   </dialog>;
 }
@@ -220,6 +221,7 @@ function Heading({
   children?: ReactNode;
   [key: string]: unknown;
 }) {
+  const container = useContentHost().scrollContainer;
   const text = extractText(children);
   const Tag = `h${level}` as const;
 
@@ -232,14 +234,7 @@ function Heading({
         aria-label={`定位到 ${text}`}
         onClick={(e) => {
           e.preventDefault();
-          // 优先滚动当前标题元素，避免页面上存在同名 id 时跳错位置
-          const currentHeading = e.currentTarget.parentElement;
-          if (currentHeading instanceof HTMLElement) {
-            currentHeading.scrollIntoView({ behavior: "smooth" });
-          } else {
-            document.getElementById(headingId)?.scrollIntoView({ behavior: "smooth" });
-          }
-          history.replaceState(null, "", `#${headingId}`);
+          scrollToHeading(e.currentTarget.parentElement!, container);
         }}
       >
         #
@@ -273,14 +268,13 @@ function CodeBlock({ children }: { children?: ReactNode }) {
   }
   if (language === "graph") {
     try { return <div className="my-8 not-prose"><GraphBlock data={parseGraphData(JSON.parse(code.trim()))} /></div>; }
-    catch (error) { return <div><p role="alert" className="text-red-700">{error instanceof Error ? error.message : String(error)}</p><pre>{children}</pre></div>; }
+    catch (error) { return <div><p role="alert" className="text-[var(--color-danger)]">{error instanceof Error ? error.message : String(error)}</p><pre>{children}</pre></div>; }
   }
 
   // 普通代码块
   return (
     <div className="code-block-wrapper">
-      {language && <span className="code-block-lang">{language}</span>}
-      <CopyButton code={code} />
+      <div className="code-block-header">{language && <span className="code-block-lang">{language}</span>}<CopyButton key={code} code={code} /></div>
       <pre>{children}</pre>
     </div>
   );
