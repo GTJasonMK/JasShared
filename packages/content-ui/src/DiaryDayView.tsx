@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { DiaryDay } from "@jas/content-core";
 import DiaryEntryArticle from "./DiaryEntryArticle";
-import type { PreviewLayout } from "./ContentHost";
+import { useContentHost, type PreviewLayout } from "./ContentHost";
 
 interface DiaryDayViewProps {
   day: DiaryDay;
@@ -69,6 +69,7 @@ export default function DiaryDayView({
   layout = 'page',
 }: DiaryDayViewProps) {
   const dateParts = parseDateParts(day.date);
+  const host = useContentHost();
   const isSingle = day.entryCount === 1;
 
   return (
@@ -76,7 +77,7 @@ export default function DiaryDayView({
       {back}
 
       <header className="mb-8">
-        <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-gold)] mb-3">考研日志</p>
+        <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-gold)] mb-3">{host.sections?.diary.title ?? "考研日志"}</p>
         <div className="flex items-baseline gap-3 mb-2">
           <span className="text-4xl font-bold text-[var(--color-vermilion)] leading-none">{dateParts.day}</span>
           <span className="text-sm text-[var(--color-gray)]">{dateParts.year}年{dateParts.month}月</span>

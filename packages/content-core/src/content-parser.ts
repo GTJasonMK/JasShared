@@ -8,6 +8,8 @@ import { normalizeDiaryTime } from './diary-contract';
 export { parseRoadmapItemsFromContent } from './roadmap-content';
 import { normalizeRoadmapStatus } from './roadmap-status';
 import { parse as parseYAML } from 'yaml';
+import { parseDisplay, readPublication } from './publication';
+import type { ContentMetadata } from './types';
 import type {
   ContentType,
   NoteMetadata,
@@ -99,7 +101,17 @@ function normalizeEditorContent(content: string): string {
 /**
  * 根据解析结果和类型构建元数据对象
  */
-export function normalizeContentMetadata(
+export function normalizeContentMetadata(parsed: Record<string, unknown>, type: ContentType): { metadata: ContentMetadata; issues: string[] } {
+  const result = normalizeTypeMetadata(parsed, type);
+  if (type === 'doc') return result;
+  try {
+    return { metadata: { ...result.metadata, publication: readPublication(parsed.publication), display: parseDisplay(parsed.display) }, issues: result.issues };
+  } catch (error) {
+    return { metadata: { ...result.metadata, publication: 'draft' }, issues: [...result.issues, getErrorMessage(error)] };
+  }
+}
+
+function normalizeTypeMetadata(
   parsed: Record<string, unknown>,
   type: ContentType
 ): {
@@ -175,6 +187,8 @@ export function normalizeContentMetadata(
     };
   }
 
+  if (type === 'page') return { metadata: { title: readFrontmatterString(parsed.title) ?? '', description: readFrontmatterString(parsed.description) ?? '', date: readFrontmatterString(parsed.date) }, issues: [] };
+
   // doc 类型（普通文档）
   return {
     metadata: {
@@ -226,57 +240,8 @@ export function normalizeTechStack(value: unknown): TechStackItem[] | undefined 
 /**
  * 获取默认元数据
  */
-function getDefaultMetadata(type: ContentType): NoteMetadata | ProjectMetadata | DiaryMetadata | RoadmapMetadata | GraphMetadata | DocMetadata {
-  if (type === 'note') {
-    return {
-      title: '',
-      date: '',
-      excerpt: '',
-      tags: [],
-    };
-  }
-
-  if (type === 'project') {
-    return {
-      name: '',
-      description: '',
-      github: '',
-      tags: [],
-    };
-  }
-
-  if (type === 'diary') {
-    return {
-      title: '',
-      date: '',
-      time: '',
-      excerpt: '',
-      tags: [],
-      companions: [],
-    };
-  }
-
-  if (type === 'roadmap') {
-    return {
-      title: '',
-      description: '',
-      status: 'active',
-    };
-  }
-
-  if (type === 'graph') {
-    return {
-      name: '',
-      description: '',
-      date: undefined,
-    };
-  }
-
-  // doc 类型
-  return {
-    title: '',
-    date: undefined,
-  };
+function getDefaultMetadata(type: ContentType): ContentMetadata {
+  return normalizeContentMetadata(type === 'doc' ? {} : { publication: 'draft' }, type).metadata;
 }
 
 function getErrorMessage(error: unknown): string {

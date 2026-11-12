@@ -1,0 +1,81 @@
+.photography-page {
+  max-width: 76rem;
+  margin-inline: auto;
+  padding: 4rem 1.5rem 2rem;
+}
+.photography-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 2rem;
+  border-bottom: 1px solid var(--color-paper-darker);
+  padding-bottom: 2.5rem;
+}
+.photography-eyebrow {
+  font-family: system-ui, sans-serif;
+  font-size: .75rem;
+  letter-spacing: .16em;
+  color: var(--color-gray);
+  margin-bottom: .75rem;
+}
+.photography-heading h1 { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 500; line-height: 1.35; letter-spacing: -.03em; }
+.photography-heading h1 span { color: var(--color-vermilion); }
+.photography-intro { margin-top: 1rem; color: var(--color-gray); font-size: .9375rem; }
+.photography-total { white-space: nowrap; color: var(--color-gray); font-size: .75rem; padding-bottom: .375rem; }
+.photography-total span { font-family: system-ui, sans-serif; font-size: 1.5rem; font-variant-numeric: tabular-nums; margin-right: .375rem; color: var(--color-ink); }
+.photography-gallery-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1.5rem; margin-block: 1.5rem 2rem; }
+.photography-filters { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; }
+.photography-filters button { min-width: 2.75rem; min-height: 2.75rem; max-width: 100%; overflow-wrap: anywhere; border-bottom: 1px solid transparent; color: var(--color-gray); font-size: .875rem; padding-inline: .25rem; }
+.photography-filters button[aria-pressed="true"] { color: var(--color-vermilion-dark); border-color: currentColor; }
+.photography-filters button:hover { color: var(--color-ink); }
+.photography-visible-count, .photography-gallery-label { font-size: .875rem; color: var(--color-gray); font-weight: 400; }
+.photography-grid { columns: 1; column-gap: 1.5rem; list-style: none; }
+.photography-grid li { break-inside: avoid; padding-bottom: 2.5rem; }
+.photography-photo-button { position: relative; display: block; width: 100%; min-height: 2.75rem; background: var(--color-paper-dark); cursor: zoom-in; }
+.photography-thumbnail { display: block; width: 100%; height: auto; font-family: system-ui, sans-serif; }
+.photography-expand { position: absolute; bottom: .75rem; right: .75rem; display: grid; place-items: center; width: 2rem; height: 2rem; background: var(--color-paper); color: var(--color-ink); opacity: 0; transition: opacity 150ms ease-out; }
+.photography-expand svg { width: 1rem; height: 1rem; stroke: currentColor; fill: none; stroke-width: 1.5; }
+.photography-photo-button:hover .photography-expand, .photography-photo-button:focus-visible .photography-expand { opacity: 1; }
+.photography-grid figcaption { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem 1rem; padding-top: .75rem; }
+.photography-grid h3 { font-size: .9375rem; font-weight: 500; overflow-wrap: anywhere; }
+.photography-grid figcaption p { color: var(--color-gray); font-size: .75rem; overflow-wrap: anywhere; }
+.photography-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 24rem; text-align: center; padding: 3rem 1rem; }
+.photography-empty svg { width: 8rem; height: auto; stroke: var(--color-gray-light); fill: none; stroke-width: .75; margin-bottom: 2rem; }
+.photography-empty h2 { font-size: 1.25rem; font-weight: 400; }
+.photography-empty p { color: var(--color-gray); font-size: .875rem; margin-top: .75rem; }
+.photography-page :is(button, a):focus-visible, .photography-viewer button:focus-visible { outline: 2px solid var(--color-vermilion); outline-offset: 5px; }
+.photography-viewer button:focus-visible { outline-color: var(--color-paper); }
+.photography-viewer { position: fixed; inset: 0; margin: 0; width: 100%; max-width: none; height: 100dvh; max-height: none; border: 0; padding: 0; background: var(--color-ink); color: var(--color-paper); }
+.photography-viewer::backdrop { background: var(--color-ink); }
+.photography-viewer-body { min-height: 100%; display: flex; flex-direction: column; padding: 1rem 1.5rem; }
+.photography-viewer-toolbar { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 1rem; }
+.photography-counter { font-family: system-ui, sans-serif; font-size: .875rem; font-variant-numeric: tabular-nums; letter-spacing: .08em; }
+.photography-icon-button { width: 2.75rem; height: 2.75rem; display: grid; place-items: center; flex-shrink: 0; border: 1px solid transparent; }
+.photography-icon-button svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.photography-icon-button:hover:not(:disabled) { border-color: var(--color-gray-light); }
+.photography-icon-button:disabled { opacity: .3; cursor: default; }
+.photography-viewer-stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 1.5rem 0; }
+.photography-full-image { display: block; width: auto; height: auto; max-width: 100%; max-height: calc(100dvh - 15rem); object-fit: contain; transition: opacity 150ms ease-out; }
+.photography-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--color-paper); font-size: .875rem; }
+.photography-viewer-caption { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; width: min(100%, 76rem); margin-inline: auto; padding-block: 1rem; }
+.photography-viewer-caption h2 { font-size: 1.125rem; font-weight: 400; overflow-wrap: anywhere; }
+.photography-viewer-meta { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; font-size: .75rem; color: var(--color-gray-light); padding-top: .5rem; }
+.photography-viewer-meta span { overflow-wrap: anywhere; }
+.photography-viewer-controls { display: flex; gap: .5rem; margin-left: auto; }
+.photography-image-error { display: grid; place-items: center; min-height: 12rem; padding: 1rem; color: var(--color-vermilion); }
+.photography-photo-button .photography-image-error { position: absolute; inset: 0; min-height: 0; }
+.photography-viewer .photography-image-error { color: var(--color-paper); }
+@media (min-width: 640px) {
+  .photography-page { padding-top: 5rem; padding-inline: 2rem; }
+  .photography-grid { columns: 2; column-gap: 2rem; }
+  .photography-viewer-body { padding-inline: 2.5rem; }
+}
+@media (min-width: 1024px) {
+  .photography-grid { columns: 3; }
+  .photography-page { padding-top: 5.5rem; }
+}
+@media (max-width: 479px) {
+  .photography-heading { flex-direction: column; align-items: flex-start; gap: 1.5rem; padding-bottom: 1.75rem; }
+  .photography-total { align-self: flex-end; }
+  .photography-viewer-body { padding-inline: 1rem; }
+}

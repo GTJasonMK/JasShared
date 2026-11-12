@@ -18,7 +18,8 @@ for (const name of packages) {
         const value = specifier.text;
         const forbidden = value.startsWith("@/") || value.startsWith("@jasblog/") || /(?:^|\/)(GT|JasBlog|JasBlogEditor)(?:\/|$)/.test(value)
           || (value.startsWith(".") && !path.resolve(source.pathname, path.dirname(file), value).startsWith(source.pathname))
-          || /^(?:node:|fs(?:\/|$)|path$|next(?:\/|$)|@tauri-apps\/|zustand(?:\/|$))/.test(value)
+          || /^(?:next(?:\/|$)|@tauri-apps\/|zustand(?:\/|$))/.test(value)
+          || (name !== "site-tools" && /^(?:node:|fs(?:\/|$)|path$)/.test(value))
           || (name.endsWith("-core") && /^react(?:\/|$)/.test(value));
         if (forbidden) failures.push(`${name}/${file}: ${value}`);
       }

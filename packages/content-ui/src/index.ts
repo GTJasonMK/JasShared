@@ -14,3 +14,5 @@ export * from "./ContentHost";
 export * from "./ContentLink";
 export * from "./DetailViews";
 export * from "./ListViews";
+export * from "./PhotographyView";
+export * from "./PageView";

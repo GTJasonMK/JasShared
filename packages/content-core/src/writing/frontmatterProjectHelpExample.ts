@@ -1,6 +1,7 @@
 import type { FrontmatterHelpExample } from "./frontmatterHelpSchema";
 
 const PROJECT_RAW = `---
+publication: draft
 name: JasBlogEditor
 description: 用于本地编辑 JasBlog 内容并交给 GitHub Pages 自动部署的桌面编辑器。
 github: https://github.com/your-name/JasBlogEditor
@@ -67,6 +68,7 @@ export const FRONTMATTER_PROJECT_HELP_EXAMPLE: FrontmatterHelpExample = {
       description:
         "如果你只是想先把项目挂到列表页，最少写 `name/description/github` 就够用。",
       code: `---
+publication: draft
 name: JasBlogEditor
 description: 面向 JasBlog 工作流的本地内容编辑器。
 github: https://github.com/your-name/JasBlogEditor
@@ -104,6 +106,7 @@ tags: [tauri, markdown]
       description:
         "如果你只是想快速起稿，也可以先把 `techStack` 写成逗号分隔字符串，解析器会自动拆分。",
       code: `---
+publication: draft
 name: JasBlogEditor
 description: 面向 JasBlog 的本地编辑器
 github: https://github.com/your-name/JasBlogEditor
@@ -120,6 +123,7 @@ techStack: React, Tauri, TypeScript
       description:
         "项目暂时没有在线演示时，直接省略 `demo` 字段即可，不需要用占位链接凑完整。",
       code: `---
+publication: draft
 name: JasBlogEditor
 description: 用于本地编辑 JasBlog 内容的桌面工具。
 github: https://github.com/your-name/JasBlogEditor

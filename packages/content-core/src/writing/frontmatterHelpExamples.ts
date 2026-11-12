@@ -5,6 +5,7 @@ import { FRONTMATTER_GRAPH_HELP_EXAMPLE } from "./frontmatterGraphHelpExample";
 import { FRONTMATTER_NOTE_HELP_EXAMPLE } from "./frontmatterNoteHelpExample";
 import { FRONTMATTER_PROJECT_HELP_EXAMPLE } from "./frontmatterProjectHelpExample";
 import { FRONTMATTER_ROADMAP_HELP_EXAMPLE } from "./frontmatterRoadmapHelpExample";
+import { FRONTMATTER_PAGE_HELP_EXAMPLE } from "./frontmatterPageHelpExample";
 
 export const FRONTMATTER_HELP_EXAMPLES: FrontmatterHelpExample[] = [
   FRONTMATTER_NOTE_HELP_EXAMPLE,
@@ -12,5 +13,6 @@ export const FRONTMATTER_HELP_EXAMPLES: FrontmatterHelpExample[] = [
   FRONTMATTER_PROJECT_HELP_EXAMPLE,
   FRONTMATTER_ROADMAP_HELP_EXAMPLE,
   FRONTMATTER_GRAPH_HELP_EXAMPLE,
+  FRONTMATTER_PAGE_HELP_EXAMPLE,
   FRONTMATTER_DOC_HELP_EXAMPLE,
 ];

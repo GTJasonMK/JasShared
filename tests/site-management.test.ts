@@ -1,0 +1,253 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { execFileSync } from "node:child_process";
+import { SECTION_IDS, parseSiteConfig, visibleNavigation, readPublication, normalizeContentMetadata, createContentDraft, parseMarkdownContent, serializeContentDocument, type SiteConfig } from "../packages/content-core/src/index";
+import { atomicWrite, fileVersion, withWorkspaceLock, writeVersioned } from "../packages/site-tools/src/files";
+import { readSite, loadWorkspace, validateWorkspace, PHOTO_FILE } from "../packages/site-tools/src/workspace";
+import { migrateWorkspace } from "../packages/site-tools/src/migrate";
+import { finalizeExport, prepareExport } from "../packages/site-tools/src/export";
+import { savePhotos, recoverMediaCleanup } from "../packages/site-tools/src/media";
+import { inspectPublication, publishWorkspace, publicationState } from "../packages/site-tools/src/publish";
+import { runCommand, type CommandRunner } from "../packages/site-tools/src/process";
+
+function site(): SiteConfig {
+  return { name: "Synthetic site", description: "Synthetic description", footer: "Synthetic author", home: { heading: "Synthetic", accent: "", description: "", notesDescription: "", projectsDescription: "" }, sections: Object.fromEntries(SECTION_IDS.map((id) => [id, { title: id, description: "", enabled: true }])) as SiteConfig["sections"], navigation: [{ target: "home", label: "Home", visible: true }, { target: "notes", label: "Notes", visible: true }], comments: { enabled: false, repo: "", repoId: "", category: "", categoryId: "" } };
+}
+function workspace() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "jas-site-"));
+  for (const dir of ["content/photography", "content/pages", "content/notes", "public/media", "public/photography", ".run"]) fs.mkdirSync(path.join(root, dir), { recursive: true });
+  fs.writeFileSync(path.join(root, "content/site.json"), JSON.stringify(site(), null, 2) + "\n");
+  fs.writeFileSync(path.join(root, PHOTO_FILE), "[]\n");
+  return root;
+}
+function write(root: string, relative: string, text: string) { fs.mkdirSync(path.dirname(path.join(root, relative)), { recursive: true }); fs.writeFileSync(path.join(root, relative), text); }
+function git(root: string, ...args: string[]) { return execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim(); }
+
+test("site configuration separates navigation visibility from public routes and rejects bad targets", () => {
+  const config = site();
+  config.navigation.push({ target: "page:about", label: "About", visible: true });
+  assert.equal(visibleNavigation(config, ["about"]).length, 3);
+  config.sections.notes.enabled = false;
+  assert.deepEqual(visibleNavigation(config, []).map((item) => item.href), ["/"]);
+  for (const candidate of [{ ...site(), name: "" }, { ...site(), extra: true }, { ...site(), navigation: [...site().navigation, site().navigation[0]] }, { ...site(), navigation: [{ target: "page:../escape", label: "bad", visible: true }] }, { ...site(), sections: { ...site().sections, home: { title: "Home", description: "", enabled: false } } }]) assert.throws(() => parseSiteConfig(candidate));
+});
+
+test("publication is explicit and independent of roadmap status; draft creation preserves YAML", () => {
+  assert.throws(() => readPublication(undefined));
+  const missing = normalizeContentMetadata({ title: "unfinished", status: "active" }, "roadmap");
+  assert.equal(missing.metadata.publication, "draft");
+  assert.match(missing.issues.join(" "), /publication/);
+  const raw = '\uFEFF---\r\n# keep\r\ntitle: Synthetic\r\npublication: published\r\ncustom: yes\r\n---\r\nbody\r\n';
+  const draft = createContentDraft(raw, "page");
+  assert.ok(draft.startsWith('\uFEFF---\r\n# keep'));
+  assert.ok(draft.endsWith('body\r\n'));
+  assert.equal(parseMarkdownContent(draft, "page").metadata.publication, "draft");
+  const parsed = parseMarkdownContent('---\ntitle: Synthetic\npublication: draft\ndisplay:\n  cover: { src: /media/test.webp, alt: Synthetic, width: 20, height: 10 }\n---\nbody', "page");
+  const saved = serializeContentDocument({ ...parsed, type: "page", frontmatterBlock: parsed.frontmatterBlock!, metadata: { ...parsed.metadata, display: { cover: undefined, toc: false } }, metadataDirty: true });
+  assert.deepEqual(parseMarkdownContent(saved, "page").issues, []);
+  assert.equal(parseMarkdownContent(saved, "page").metadata.display?.cover, undefined);
+});
+
+test("migration preserves creative content, backs up original bytes and is repeatable", async () => {
+  const root = workspace(); const backup = fs.mkdtempSync(path.join(os.tmpdir(), "jas-site-backup-"));
+  try {
+    const original = '\uFEFF---\r\n# keep\r\ntitle: Synthetic\r\ncustom: { keep: true }\r\n---\r\nRetained body\r\n';
+    write(root, "content/notes/retained.md", original);
+    const changed = await migrateWorkspace(root, backup, site());
+    assert.deepEqual(changed, ["content/notes/retained.md"]);
+    assert.equal(fs.readFileSync(path.join(backup, "content/notes/retained.md"), "utf8"), original);
+    const current = fs.readFileSync(path.join(root, "content/notes/retained.md"), "utf8");
+    assert.ok(current.includes('# keep\r\n'));
+    assert.ok(current.endsWith('Retained body\r\n'));
+    assert.deepEqual(await migrateWorkspace(root, backup, site()), []);
+    validateWorkspace(root);
+  } finally { fs.rmSync(root, { recursive: true }); fs.rmSync(backup, { recursive: true }); }
+});
+
+test("versioned saves reject external changes and workspace locks reject competing writes", async () => {
+  const root = workspace();
+  try {
+    const file = path.join(root, "content/site.json"); const version = fileVersion(file);
+    write(root, "content/site.json", JSON.stringify({ ...site(), name: "Changed externally" }));
+    assert.throws(() => writeVersioned(file, site(), version), /变化/);
+    assert.equal(readSite(root).name, "Changed externally");
+    let release!: () => void;
+    const first = withWorkspaceLock(root, () => new Promise<void>((resolve) => { release = resolve; }));
+    await assert.rejects(withWorkspaceLock(root, () => undefined), (error: unknown) => (error as NodeJS.ErrnoException).code === "EEXIST");
+    release(); await first;
+  } finally { fs.rmSync(root, { recursive: true }); }
+});
+
+test("exports remove disabled routes and draft-only assets while retaining shared public images", () => {
+  const root = workspace(); const previous = process.env.GITHUB_SHA;
+  try {
+    const config = site(); config.sections.notes.enabled = false;
+    write(root, "content/site.json", JSON.stringify(config));
+    prepareExport(root);
+    write(root, "out/index.html", '<img src="/nested/media/public.webp">');
+    write(root, "out/notes.html", "stale content"); write(root, "out/notes/old.html", "stale detail");
+    write(root, "out/media/public.webp", "public"); write(root, "out/media/draft.webp", "draft");
+    process.env.GITHUB_SHA = "a".repeat(40);
+    finalizeExport(root);
+    assert.equal(fs.existsSync(path.join(root, "out/notes.html")), false);
+    assert.equal(fs.existsSync(path.join(root, "out/notes")), false);
+    assert.equal(fs.existsSync(path.join(root, "out/media/public.webp")), true);
+    assert.equal(fs.existsSync(path.join(root, "out/media/draft.webp")), false);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(root, "out/deployment.json"), "utf8")).sourceSha, "a".repeat(40));
+  } finally { if (previous === undefined) delete process.env.GITHUB_SHA; else process.env.GITHUB_SHA = previous; fs.rmSync(root, { recursive: true }); }
+});
+
+test("photo deletion protects references and resumes committed cleanup without deleting changed files", async () => {
+  const root = workspace();
+  try {
+    const src = "/photography/synthetic/full.webp";
+    write(root, "public" + src, "synthetic image");
+    const photos = [{ id: "synthetic", title: "Synthetic", alt: "Synthetic", publication: "draft", images: [{ src, width: 2, height: 1 }] }];
+    write(root, PHOTO_FILE, JSON.stringify(photos));
+    write(root, "content/notes/ref.md", `---\npublication: draft\n---\n![retained](${src})`);
+    const version = fileVersion(path.join(root, PHOTO_FILE));
+    await assert.rejects(savePhotos(root, [], version), /引用/);
+    assert.equal(loadWorkspace(root).photos.length, 1);
+    fs.unlinkSync(path.join(root, "content/notes/ref.md"));
+    const assetVersion = fileVersion(path.join(root, "public" + src));
+    write(root, ".run/media-deletions.json", JSON.stringify({ expected: version, entries: [{ src, version: assetVersion }] }));
+    write(root, PHOTO_FILE, "[]");
+    write(root, "public" + src, "changed creative output");
+    assert.throws(() => recoverMediaCleanup(root), /已被修改/);
+    write(root, "public" + src, "synthetic image");
+    recoverMediaCleanup(root);
+    assert.equal(fs.existsSync(path.join(root, "public" + src)), false);
+    assert.equal(fs.existsSync(path.join(root, ".run/media-deletions.json")), false);
+  } finally { fs.rmSync(root, { recursive: true }); }
+});
+
+function publishFixture() {
+  const root = workspace(); const remote = fs.mkdtempSync(path.join(os.tmpdir(), "jas-remote-")); const stateDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "jas-publish-state-"));
+  git(remote, "init", "--bare"); git(root, "init", "-b", "master"); git(root, "config", "user.name", "Synthetic"); git(root, "config", "user.email", "synthetic@example.invalid");
+  write(root, ".gitignore", ".run/\nout/\n"); write(root, "src/index.ts", "export {};\n");
+  git(root, "add", "."); git(root, "commit", "-m", "Synthetic baseline"); git(root, "remote", "add", "origin", remote); git(root, "push", "-u", "origin", "master");
+  const runner: CommandRunner = async (command, args, cwd) => {
+    if (command === "git" && args.join(" ") === "remote get-url origin") return "git@github.com:synthetic/site.git";
+    if (command === "npm") return "Synthetic build completed";
+    if (command === "gh") {
+      if (args[0] === "auth") return "Synthetic authenticated account";
+      if (args[0] === "repo") return JSON.stringify({ nameWithOwner: "synthetic/site", defaultBranchRef: { name: "master" } });
+      if (args[0] === "api") return JSON.stringify([{ sha: "b".repeat(40), commit: { message: `deploy: ${git(root, "rev-parse", "HEAD")}` } }]);
+      if (args[0] === "run") return JSON.stringify([{ databaseId: args.includes("deploy.yml") ? 1 : 2, status: "completed", conclusion: "success", url: "https://github.com/synthetic/site/actions/runs/1" }]);
+      throw new Error("Unexpected GitHub command");
+    }
+    return runCommand(command, args, cwd);
+  };
+  return { root, remote, stateDirectory, runner, cleanup() { for (const dir of [root, remote, stateDirectory]) fs.rmSync(dir, { recursive: true }); } };
+}
+
+test("publication stops before mutation when source files are dirty", async () => {
+  const fixture = publishFixture();
+  try {
+    const before = git(fixture.root, "rev-parse", "HEAD");
+    write(fixture.root, "src/index.ts", "changed source");
+    const inspection = await inspectPublication(fixture.root, fixture.runner);
+    assert.match(inspection.blockers.join(" "), /src\/index/);
+    await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: fixture.runner }), /非内容/);
+    assert.equal(git(fixture.root, "rev-parse", "HEAD"), before);
+  } finally { fixture.cleanup(); }
+});
+
+test("publication resumes a committed push failure without rebuilding or committing new local edits", async () => {
+  const fixture = publishFixture(); let pushes = 0; let builds = 0;
+  const runner: CommandRunner = async (command, args, cwd) => {
+    if (command === "npm") builds++;
+    if (command === "git" && args[0] === "push" && pushes++ === 0) throw new Error("Synthetic network failure");
+    return fixture.runner(command, args, cwd);
+  };
+  try {
+    write(fixture.root, "content/site.json", JSON.stringify({ ...site(), name: "Public change" }));
+    await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: runner }), /network/);
+    const committed = git(fixture.root, "rev-parse", "HEAD");
+    assert.equal(publicationState(fixture.root, fixture.stateDirectory)?.sourceSha, committed);
+    write(fixture.root, "content/notes/later.md", "---\npublication: draft\ntitle: Later draft\n---\nretained draft");
+    const result = await publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: runner, wait: async () => {}, verify: async () => true });
+    assert.equal(result.phase, "complete"); assert.equal(result.sourceSha, committed); assert.equal(builds, 1);
+    assert.equal(git(fixture.root, "rev-parse", "HEAD"), committed);
+    assert.ok(fs.readFileSync(path.join(fixture.root, "content/notes/later.md"), "utf8").includes("retained draft"));
+    assert.equal(git(fixture.root, "status", "--porcelain", "--untracked-files=all").includes("later.md"), true);
+  } finally { fixture.cleanup(); }
+});
+
+test("publication recovers the gap between Git commit and saved checkpoint", async () => {
+  const fixture = publishFixture(); let crash = true;
+  const runner: CommandRunner = async (command, args, cwd) => {
+    const result = await fixture.runner(command, args, cwd);
+    if (command === "git" && args[0] === "commit" && crash) { crash = false; throw new Error("Synthetic process interruption"); }
+    return result;
+  };
+  try {
+    write(fixture.root, "content/site.json", JSON.stringify({ ...site(), name: "Public change" }));
+    await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: runner }), /interruption/);
+    const committed = git(fixture.root, "rev-parse", "HEAD");
+    const result = await publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: runner, wait: async () => {}, verify: async () => true });
+    assert.equal(result.sourceSha, committed); assert.equal(result.phase, "complete");
+    assert.equal(git(fixture.root, "rev-list", "--count", "HEAD"), "2");
+  } finally { fixture.cleanup(); }
+});
+
+test("Pages failure and an unconfirmed online version never become publication success", async () => {
+  for (const pagesFailure of [true, false]) {
+    const fixture = publishFixture();
+    const runner: CommandRunner = async (command, args, cwd) => command === "gh" && args[0] === "run" && args.includes("pages-build-deployment") && pagesFailure ? JSON.stringify([{ databaseId: 2, status: "completed", conclusion: "failure", url: "https://github.com/synthetic/site/actions/runs/2" }]) : fixture.runner(command, args, cwd);
+    try {
+      write(fixture.root, "content/site.json", JSON.stringify({ ...site(), name: "Public change" }));
+      await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: runner, wait: async () => {}, verify: async () => false }), /未成功|尚未确认/);
+      assert.equal(publicationState(fixture.root, fixture.stateDirectory)?.phase, "unconfirmed");
+    } finally { fixture.cleanup(); }
+  }
+});
+
+test("content changes during a build stop publication before a commit", async () => {
+  const fixture = publishFixture();
+  const original = git(fixture.root, "rev-parse", "HEAD");
+  const runner: CommandRunner = async (command, args, cwd) => {
+    if (command === "npm") write(fixture.root, "content/site.json", JSON.stringify({ ...site(), name: "Edited during build" }));
+    return fixture.runner(command, args, cwd);
+  };
+  try {
+    write(fixture.root, "content/site.json", JSON.stringify({ ...site(), name: "Build snapshot" }));
+    await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: runner }), /构建期间内容发生变化/);
+    assert.equal(git(fixture.root, "rev-parse", "HEAD"), original);
+    assert.equal(readSite(fixture.root).name, "Edited during build");
+  } finally { fixture.cleanup(); }
+});
+
+test("a Git hook cannot replace the validated snapshot and have it pushed", async () => {
+  const fixture = publishFixture(); const remoteBefore = git(fixture.remote, "rev-parse", "master");
+  try {
+    write(fixture.root, "content/site.json", JSON.stringify({ ...site(), name: "Build snapshot" }));
+    const hook = path.join(fixture.root, ".git/hooks/pre-commit");
+    fs.writeFileSync(hook, '#!/bin/sh\nprintf "hook replacement" > content/site.json\ngit add content/site.json\n', { mode: 0o700 });
+    await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: fixture.runner }), /构建快照不一致/);
+    assert.equal(publicationState(fixture.root, fixture.stateDirectory)?.phase, "review_required");
+    assert.equal(git(fixture.remote, "rev-parse", "master"), remoteBefore);
+    await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: fixture.runner }), /不会推送/);
+  } finally { fixture.cleanup(); }
+});
+
+test("explicit workflow retry resumes the same source commit", async () => {
+  const fixture = publishFixture(); let retried = false;
+  const runner: CommandRunner = async (command, args, cwd) => {
+    if (command === "gh" && args[0] === "run" && args[1] === "rerun") { retried = true; return ""; }
+    if (command === "gh" && args[0] === "api" && args[1].includes("actions/runs/")) return JSON.stringify({ run_attempt: retried ? 2 : 1, status: "completed", conclusion: retried ? "success" : "failure" });
+    if (command === "gh" && args[0] === "run" && args.includes("deploy.yml") && !retried) return JSON.stringify([{ databaseId: 1, status: "completed", conclusion: "failure", url: "https://github.com/synthetic/site/actions/runs/1" }]);
+    return fixture.runner(command, args, cwd);
+  };
+  try {
+    write(fixture.root, "content/site.json", JSON.stringify({ ...site(), name: "Build snapshot" }));
+    await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: runner, wait: async () => {} }), /未成功/);
+    const committed = git(fixture.root, "rev-parse", "HEAD");
+    const result = await publishWorkspace(fixture.root, fixture.stateDirectory, undefined, { run: runner, wait: async () => {}, retryFailed: true, verify: async () => true });
+    assert.equal(result.phase, "complete"); assert.equal(result.sourceSha, committed); assert.equal(retried, true);
+    assert.equal(git(fixture.root, "rev-list", "--count", "HEAD"), "2");
+  } finally { fixture.cleanup(); }
+});

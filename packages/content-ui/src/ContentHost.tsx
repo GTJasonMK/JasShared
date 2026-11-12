@@ -2,13 +2,17 @@
 
 import { createContext, useContext, type ComponentType, type ImgHTMLAttributes, type ReactNode } from "react";
 import type { MarkdownLinkProps } from "./MarkdownRenderer";
-import type { JasBlogContentType } from "@jas/content-core";
+import type { JasBlogContentType, SiteConfig } from "@jas/content-core";
 
 export type PreviewLayout = "page" | "pane";
 export interface ContentHost {
   scrollContainer?: HTMLElement | null;
   theme?: "light" | "dark";
   Image?: ComponentType<ImgHTMLAttributes<HTMLImageElement>>;
+  assetUrl?: (src: string) => string;
+  sections?: SiteConfig["sections"];
+  section?: keyof SiteConfig["sections"];
+  commentsEnabled?: boolean;
   contentHref?: (type: JasBlogContentType, slug: string) => string;
   tagHref?: (tag: string) => string;
   renderLink?: (props: MarkdownLinkProps, renderDefault: (props: MarkdownLinkProps) => ReactNode) => ReactNode;

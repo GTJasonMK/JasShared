@@ -1,5 +1,12 @@
 import type { ContentMetadata, ContentType, LineEnding } from "./types";
 import { parseDocument, stringify } from "yaml";
+import { parseMarkdownContent } from "./content-parser";
+import type { JasBlogContentType } from "./types";
+
+export function createContentDraft(raw: string, type: JasBlogContentType): string {
+  const parsed = parseMarkdownContent(raw, type);
+  return serializeContentDocument({ ...parsed, type, metadata: { ...parsed.metadata, publication: "draft" }, frontmatterBlock: parsed.frontmatterBlock ?? undefined, metadataDirty: true });
+}
 
 export interface ContentDocumentSaveInput {
   type: ContentType;
@@ -32,7 +39,7 @@ function cleanMetadata(metadata: Record<string, unknown>): Record<string, unknow
     if (value === undefined || value === null) return false;
     if (Array.isArray(value) && !value.length) return ["tags", "companions", "techStack"].includes(key);
     return value !== "" || !["demo", "icon"].includes(key);
-  }));
+  }).map(([key, value]) => [key, value && typeof value === "object" && !Array.isArray(value) ? cleanMetadata(value as Record<string, unknown>) : value]));
 }
 
 function serializeFrontmatter(file: ContentDocumentSaveInput): string {

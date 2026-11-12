@@ -1,6 +1,7 @@
 import type { FrontmatterHelpExample } from "./frontmatterHelpSchema";
 
 const GRAPH_RAW = `---
+publication: draft
 name: 前端渲染能力图谱
 description: 用图谱梳理 Markdown 渲染、frontmatter 与特殊块语法之间的关系
 date: 2026-04-03

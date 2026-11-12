@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import { calculateRoadmapProgress, extractHeadingsFromContent, type NoteMetadata, type ProjectMetadata, type RoadmapMetadata, type RoadmapItem, type GraphMetadata, type GraphData } from "@jas/content-core";
+import { calculateRoadmapProgress, contentDisplay, extractHeadingsFromContent, type NoteMetadata, type ProjectMetadata, type RoadmapMetadata, type RoadmapItem, type GraphMetadata, type GraphData } from "@jas/content-core";
 import { ROADMAP_ITEM_STATUS_BADGE_CONFIG, ROADMAP_PRIORITY_CONFIG, ROADMAP_STATUS_BADGE_CONFIG } from "./roadmap-ui";
 import ArticleBody from "./ArticleBody";
 import { BackToTop } from "./BackToTop";
@@ -10,6 +10,7 @@ import { TechStack } from "./TechStack";
 import { useContentHost, type PreviewLayout } from "./ContentHost";
 import { GraphBlock } from "./GraphBlock";
 import { ContentLink } from "./ContentLink";
+import { ContentCover } from "./PageView";
 
 type DocumentBody = { content: string; error?: string };
 type ShellProps = { back?: ReactNode; layout?: PreviewLayout };
@@ -21,7 +22,7 @@ function Issue({ error }: { error?: string }) {
 export function NoteView({ note, back, comments, onTagSelect, layout = "page" }: ShellProps & { note: NoteMetadata & DocumentBody; comments?: ReactNode; onTagSelect?: (tag: string) => void }) {
   const host = useContentHost();
   const headings = useMemo(() => layout === "page" ? extractHeadingsFromContent(note.content) : [], [layout, note.content]);
-  const toc = headings.length > 0;
+  const toc = contentDisplay(note, "note").toc && headings.length > 0;
   const paneToc = toc && Boolean(host.scrollContainer);
   return <div className={`jas-content ${layout === "pane" ? "min-w-0 py-6" : paneToc ? "max-w-6xl mx-auto px-6 py-12" : "max-w-3xl mx-auto px-6 py-12"}`}>
     {back}
@@ -30,7 +31,7 @@ export function NoteView({ note, back, comments, onTagSelect, layout = "page" }:
         <header className="relative bg-[var(--color-paper)] border border-[var(--color-paper-darker)] rounded-2xl p-8 mb-8 overflow-hidden">
           <div className="absolute -top-3 -right-3 w-24 h-24 rounded-full border-2 border-dashed border-[var(--color-vermilion)]/15" />
           <div className="border-l-4 border-[var(--color-vermilion)] pl-6">
-            <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-gold)] mb-2">学习笔记</p>
+            <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-gold)] mb-2">{host.sections?.notes.title ?? "学习笔记"}</p>
             {note.date && <time className="text-sm text-[var(--color-gray)]">{note.date}</time>}
             <h1 className="text-3xl font-bold mt-2 mb-4 break-words">{note.title}</h1>
             <Issue error={note.error} />
@@ -40,9 +41,10 @@ export function NoteView({ note, back, comments, onTagSelect, layout = "page" }:
               : <span key={tag} className="tag">{tag}</span>)}</div>
           </div>
         </header>
+        {note.display?.cover && <ContentCover cover={note.display.cover} />}
         <div className="divider-cloud mb-8" />
         <ArticleBody content={note.content} />
-        {comments && <><div className="divider-cloud my-12" /><section><h2 className="text-xl font-semibold mb-6">评论与讨论</h2>{comments}</section></>}
+        {comments && host.commentsEnabled !== false && contentDisplay(note, "note").comments && <><div className="divider-cloud my-12" /><section><h2 className="text-xl font-semibold mb-6">评论与讨论</h2>{comments}</section></>}
       </div>
       {toc && <div className={paneToc ? "hidden lg:block w-56 flex-shrink-0" : "contents"}><TableOfContents headings={headings} /></div>}
     </div>
@@ -51,12 +53,13 @@ export function NoteView({ note, back, comments, onTagSelect, layout = "page" }:
 }
 
 export function ProjectView({ project, back, layout = "page" }: ShellProps & { project: ProjectMetadata & DocumentBody }) {
+  const host = useContentHost();
   return <div className={`jas-content ${layout === "pane" ? "min-w-0 py-6" : "max-w-4xl mx-auto px-6 py-12"}`}>
     {back}
     <header className="rounded-2xl border border-[var(--color-paper-darker)] overflow-hidden mb-8">
       <div className="h-1.5 bg-[var(--color-ink)]" />
       <div className="bg-[var(--color-paper-dark)]/60 p-8">
-        <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-gold)] mb-3">开源项目</p>
+        <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-gold)] mb-3">{host.sections?.projects.title ?? "开源项目"}</p>
         <h1 className="text-3xl font-bold mb-4 break-words">{project.name}</h1>
         {project.description && <p className="text-lg text-[var(--color-gray)] mb-4">{project.description}</p>}
         <Issue error={project.error} />
@@ -87,6 +90,7 @@ function RoadmapItemCard({ item }: { item: RoadmapItem }) {
 }
 
 export function RoadmapView({ roadmap, back, layout = "page" }: ShellProps & { roadmap: RoadmapMetadata & DocumentBody & { items: RoadmapItem[] } }) {
+  const host = useContentHost();
   const status = roadmap.status ?? "active";
   const progress = calculateRoadmapProgress(roadmap.items);
   const percent = progress.total ? Math.round(progress.done / progress.total * 100) : 0;
@@ -96,7 +100,7 @@ export function RoadmapView({ roadmap, back, layout = "page" }: ShellProps & { r
     <header className="rounded-2xl border border-[var(--color-paper-darker)] overflow-hidden mb-8">
       <div className="h-1 bg-gradient-to-r from-[var(--color-vermilion)] to-[var(--color-gold)]" />
       <div className="bg-[var(--color-paper-dark)]/40 p-8">
-        <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-gold)] mb-2">我的规划</p>
+        <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-gold)] mb-2">{host.sections?.roadmap.title ?? "我的规划"}</p>
         <div className="flex flex-wrap items-center gap-3 mb-2"><h1 className="text-2xl font-bold break-words">{roadmap.title}</h1><span className={`text-xs px-2 py-1 rounded ${ROADMAP_STATUS_BADGE_CONFIG[status].className}`}>{ROADMAP_STATUS_BADGE_CONFIG[status].label}</span></div>
         {roadmap.description && <p className="text-[var(--color-gray)] mb-4">{roadmap.description}</p>}
         <Issue error={roadmap.error} />
@@ -116,10 +120,11 @@ export function RoadmapView({ roadmap, back, layout = "page" }: ShellProps & { r
 }
 
 export function GraphView({ graph, back, layout = "page" }: ShellProps & { graph: GraphMetadata & DocumentBody & { graphData: GraphData } }) {
+  const host = useContentHost();
   return <div className={`jas-content ${layout === "pane" ? "min-w-0 py-6" : "max-w-6xl mx-auto px-6 py-12"}`}>
     {back}
     <header className="rounded-2xl bg-[var(--color-paper)] border-2 border-dashed border-[var(--color-gold)]/30 p-8 mb-8">
-      <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-gold)] mb-2">知识图谱</p>
+      <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-gold)] mb-2">{host.sections?.graphs.title ?? "知识图谱"}</p>
       <h1 className="text-2xl font-bold mb-2 break-words">{graph.name}</h1>
       {graph.description && <p className="text-[var(--color-gray)] mb-4">{graph.description}</p>}
       {graph.date && <time className="text-sm text-[var(--color-gray)]">{graph.date}</time>}

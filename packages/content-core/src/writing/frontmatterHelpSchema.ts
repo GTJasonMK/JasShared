@@ -7,7 +7,7 @@ export interface HelpSectionLink {
 
 type FrontmatterContentType = Extract<
   ContentType,
-  "note" | "diary" | "project" | "roadmap" | "graph" | "doc"
+  "note" | "diary" | "project" | "roadmap" | "graph" | "page" | "doc"
 >;
 
 export interface FrontmatterHelpScenario {

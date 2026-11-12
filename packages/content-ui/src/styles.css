@@ -2,6 +2,7 @@
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 @import "katex/dist/katex.min.css";
 @import "./prose.css";
+@import "./photography.css";
 @source "./";
 @source "./roadmap-ui.ts";
 .jas-content { min-width: 0; }

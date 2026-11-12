@@ -6,13 +6,16 @@ import { ROADMAP_STATUS_BADGE_CONFIG } from "./roadmap-ui";
 import { ContentLink } from "./ContentLink";
 import { BackToTop } from "./BackToTop";
 import { useContentHost } from "./ContentHost";
+import { ContentCover } from "./PageView";
 
 export function SectionTitle({ children, subtitle, level = 2 }: { children: ReactNode; subtitle?: string; level?: 1 | 2 }) {
   const Heading = level === 1 ? "h1" : "h2";
   return <div className="mb-10"><Heading className="text-2xl font-bold flex items-center gap-4"><span aria-hidden="true" className="w-1.5 h-8 bg-gradient-to-b from-[var(--color-vermilion)] to-transparent rounded-full shrink-0" /><span className="section-title">{children}</span></Heading>{subtitle && <p className="text-sm text-[var(--color-gray)] mt-3 ml-6">{subtitle}</p>}</div>;
 }
 function ListLayout({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
-  return <div className="jas-content max-w-4xl mx-auto px-6 py-12"><SectionTitle level={1} subtitle={subtitle}>{title}</SectionTitle>{children}<BackToTop /></div>;
+  const host = useContentHost();
+  const configured = host.section ? host.sections?.[host.section] : undefined;
+  return <div className="jas-content max-w-4xl mx-auto px-6 py-12"><SectionTitle level={1} subtitle={configured?.description ?? subtitle}>{configured?.title ?? title}</SectionTitle>{children}<BackToTop /></div>;
 }
 function Empty({ children }: { children: ReactNode }) { return <p className="text-[var(--color-gray)] text-center py-16">{children}</p>; }
 function Tags({ tags = [] }: { tags?: readonly string[] }) { return <div className="flex flex-wrap gap-2">{tags.map((tag) => <span key={tag} className="tag">{tag}</span>)}</div>; }
@@ -26,6 +29,7 @@ function Card({ type, slug, onOpen, children, selected }: { type: JasBlogContent
 
 export function NoteCard({ note, onOpen, selected }: { note: NoteListEntry; onOpen?: () => void; selected?: boolean }) {
   return <Card type="note" slug={note.slug} onOpen={onOpen} selected={selected}>
+    {note.display?.cover && <ContentCover cover={note.display.cover} lazy />}
     <div className="flex flex-wrap items-center gap-3 mb-2"><time className="text-xs text-[var(--color-gray-light)]">{note.date}</time><Tags tags={note.tags} /></div>
     <h3 className="text-lg font-semibold mb-2 hover:text-[var(--color-vermilion)] break-words">{note.title}</h3>
     {note.excerpt && <p className="text-[var(--color-gray)] text-sm">{note.excerpt}</p>}

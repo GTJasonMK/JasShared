@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const local = process.argv.includes("--local");
 const output = path.join(root, ".artifacts", local ? "local" : "release");
-const names = ["graph-core", "content-core", "agent-core", "graph-ui", "content-ui"];
+const names = ["graph-core", "content-core", "agent-core", "graph-ui", "content-ui", "site-tools"];
 const releaseBase = "https://github.com/GTJasonMK/JasShared/releases/download";
 await mkdir(output, { recursive: true });
 

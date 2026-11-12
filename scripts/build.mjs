@@ -8,7 +8,7 @@ import postcss from "postcss";
 import tailwind from "@tailwindcss/postcss";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const names = ["graph-core", "content-core", "agent-core", "graph-ui", "content-ui"];
+const names = ["graph-core", "content-core", "agent-core", "graph-ui", "content-ui", "site-tools"];
 const requested = process.argv.slice(2);
 if (requested.some((name) => !names.includes(name))) throw new Error("未知的公共包。");
 const selected = new Set(requested);
@@ -35,7 +35,7 @@ for (const name of names) {
     .filter((file) => /\.(ts|tsx)$/.test(file) && !file.endsWith(".d.ts"));
   const config = {
     extends: "../../tsconfig.json",
-    compilerOptions: { rootDir: `../../packages/${name}/src`, outDir: `../../packages/${name}/dist`, ...(name.endsWith("-core") ? { lib: ["ES2020"], types: [] } : {}) },
+    compilerOptions: { rootDir: `../../packages/${name}/src`, outDir: `../../packages/${name}/dist`, ...(name.endsWith("-core") ? { lib: ["ES2020"], types: [] } : {}), ...(name === "site-tools" ? { lib: ["ES2022"], types: ["node"] } : {}) },
     include: [`../../packages/${name}/src`],
   };
   const configPath = path.join(configDirectory, `${name}.json`);
@@ -48,7 +48,7 @@ for (const name of names) {
     bundle: true,
     splitting: true,
     format: "esm",
-    platform: "neutral",
+    platform: name === "site-tools" ? "node" : "neutral",
     target: "es2020",
     jsx: "automatic",
     packages: "external",

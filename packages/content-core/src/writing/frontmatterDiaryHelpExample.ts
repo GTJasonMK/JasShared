@@ -1,6 +1,7 @@
 import type { FrontmatterHelpExample } from "./frontmatterHelpSchema";
 
 const DIARY_RAW = `---
+publication: draft
 title: 4 月冲刺阶段复盘
 date: 2026-04-03
 time: 22:10
@@ -119,6 +120,7 @@ title: 晚上复盘总结
       description:
         "当你想一起记录当天状态和学习环境时，可以补 `mood/weather/location/companions` 这些字段。",
       code: `---
+publication: draft
 date: 2026-04-03
 time: 0900
 title: 上午图书馆刷题记录

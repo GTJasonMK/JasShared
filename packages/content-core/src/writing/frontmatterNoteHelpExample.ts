@@ -1,6 +1,7 @@
 import type { FrontmatterHelpExample } from "./frontmatterHelpSchema";
 
 const NOTE_RAW = `---
+publication: draft
 title: React 状态同步排查笔记
 date: 2026-04-03
 excerpt: 先写结论，再拆原因与修复步骤，是最常见也最容易复用的笔记写法。
@@ -64,6 +65,7 @@ export const FRONTMATTER_NOTE_HELP_EXAMPLE: FrontmatterHelpExample = {
       description:
         "这是最常见的 note 写法，适合问题排查、踩坑记录和调试总结。",
       code: `---
+publication: draft
 title: React 渲染不同步排查
 excerpt: 先给结论，再补复现条件和根因。
 ---
@@ -89,6 +91,7 @@ excerpt: 先给结论，再补复现条件和根因。
       description:
         "当 note 更像教程或实践记录时，可以把正文改成步骤结构，而不是排查结构。",
       code: `---
+publication: draft
 title: Tauri 开发环境准备
 tags: [tauri, 环境配置]
 ---
@@ -118,6 +121,7 @@ tags: [tauri, 环境配置]
       description:
         "如果内容更像长期维护的操作说明，而不是知识总结或排查结论，就应该从 note 改成 doc。",
       code: `---
+publication: draft
 title: 本地发布检查流程
 date: 2026-04-03
 ---

@@ -1,0 +1,12 @@
+{
+  "name": "@jas/site-tools",
+  "version": "0.3.0",
+  "type": "module",
+  "sideEffects": false,
+  "engines": { "node": ">=20" },
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./cli": "./dist/cli.js"
+  },
+  "dependencies": { "@jas/content-core": "0.3.0", "sharp": "0.34.5", "yaml": "2.8.2" }
+}

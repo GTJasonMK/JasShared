@@ -9,6 +9,7 @@
 | graph-ui | 图谱只读展示、节点卡片和 HTML 清理 | 应用状态、持久化和导航实现 |
 | content-ui | 正文、目录、图片、图表、详情和列表展示 | Next、Tauri、工作区文件读取和应用状态 |
 | agent-core | 协议、状态转换、投影、输入校验、串行命令、去重和恢复 | 图谱业务、文档业务和具体存储 |
+| site-tools | Node 工作区、素材处理、静态导出、迁移与发布 | React、Next、Tauri 和应用状态 |
 
 ```mermaid
 flowchart LR

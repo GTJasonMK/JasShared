@@ -1,6 +1,7 @@
 import type { FrontmatterHelpExample } from "./frontmatterHelpSchema";
 
 const ROADMAP_RAW = `---
+publication: draft
 title: 帮助页写作指南完善计划
 description: 为 frontmatter 分类补齐各类文档的完整示例与写作说明
 status: active

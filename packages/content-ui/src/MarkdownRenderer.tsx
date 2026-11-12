@@ -82,7 +82,9 @@ function ImageZoom({
   height?: string | number;
 }) {
   const [zoomed, setZoomed] = useState(false);
-  const Image = useContentHost().Image ?? "img";
+  const host = useContentHost();
+  const Image = host.Image ?? "img";
+  const resolvedSrc = src ? host.assetUrl?.(src) ?? src : undefined;
   const resolved = resolveImageDimensions({ width, height });
 
   if (!src || typeof src !== "string") return null;
@@ -92,7 +94,7 @@ function ImageZoom({
       <span className="block my-6">
         <button type="button" onClick={() => setZoomed(true)} aria-label={`放大图片：${alt || "图片"}`} className="block max-w-full mx-auto cursor-zoom-in">
         <Image
-          src={src}
+          src={resolvedSrc}
           alt={alt || ""}
           width={resolved.width}
           height={resolved.height}
@@ -108,7 +110,7 @@ function ImageZoom({
       </span>
       {/* 图片缩放蒙层 */}
       {zoomed && (
-        <ZoomDialog src={src} alt={alt} onClose={() => setZoomed(false)} />
+        <ZoomDialog src={resolvedSrc!} alt={alt} onClose={() => setZoomed(false)} />
       )}
     </>
   );
