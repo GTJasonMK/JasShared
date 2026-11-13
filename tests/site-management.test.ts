@@ -134,21 +134,31 @@ test("versioned saves reject external changes and workspace locks reject competi
   } finally { fs.rmSync(root, { recursive: true }); }
 });
 
-test("exports remove disabled routes and draft-only assets while retaining shared public images", () => {
+test("exports remove disabled routes and unused copied assets without deleting route payloads", () => {
   const root = workspace(); const previous = process.env.GITHUB_SHA;
   try {
     const config = site(); config.sections.notes.enabled = false;
     write(root, "content/site.json", JSON.stringify(config));
     prepareExport(root);
-    write(root, "out/index.html", '<img src="/nested/media/public.webp">');
+    write(root, "out/index.html", '<img src="/nested/media/public.webp"><img src="/photography/visible/full.webp">');
     write(root, "out/notes.html", "stale content"); write(root, "out/notes/old.html", "stale detail");
+    write(root, "public/media/public.webp", "public"); write(root, "public/media/draft.webp", "draft");
+    write(root, "public/photography/visible/full.webp", "visible"); write(root, "public/photography/draft/full.webp", "draft");
     write(root, "out/media/public.webp", "public"); write(root, "out/media/draft.webp", "draft");
+    write(root, "out/photography/visible/full.webp", "visible"); write(root, "out/photography/draft/full.webp", "draft");
+    write(root, "out/photography/__next._tree.txt", "route tree");
+    write(root, "out/photography/__next._full.txt", "route payload");
     process.env.GITHUB_SHA = "a".repeat(40);
     finalizeExport(root);
     assert.equal(fs.existsSync(path.join(root, "out/notes.html")), false);
     assert.equal(fs.existsSync(path.join(root, "out/notes")), false);
     assert.equal(fs.existsSync(path.join(root, "out/media/public.webp")), true);
     assert.equal(fs.existsSync(path.join(root, "out/media/draft.webp")), false);
+    assert.equal(fs.readFileSync(path.join(root, "out/photography/visible/full.webp"), "utf8"), "visible");
+    assert.equal(fs.existsSync(path.join(root, "out/photography/draft/full.webp")), false);
+    assert.equal(fs.readFileSync(path.join(root, "out/photography/__next._tree.txt"), "utf8"), "route tree");
+    assert.equal(fs.readFileSync(path.join(root, "out/photography/__next._full.txt"), "utf8"), "route payload");
+    assert.equal(fs.readFileSync(path.join(root, "public/photography/draft/full.webp"), "utf8"), "draft");
     assert.equal(JSON.parse(fs.readFileSync(path.join(root, "out/deployment.json"), "utf8")).sourceSha, "a".repeat(40));
   } finally { if (previous === undefined) delete process.env.GITHUB_SHA; else process.env.GITHUB_SHA = previous; fs.rmSync(root, { recursive: true }); }
 });

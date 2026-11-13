@@ -31,9 +31,11 @@ export function finalizeExport(root = process.cwd()): void {
     for (const match of html.matchAll(/\/(?:media|photography)\/[^\s"'<>\\,]+/g)) assets.add(decodeURIComponent(match[0]));
   }
   for (const directory of ["media", "photography"]) {
+    // Public assets share output folders with generated page and route payloads.
+    const copied = new Set(files(path.join(root, "public", directory)).map((file) => path.relative(path.join(root, "public"), file).split(path.sep).join("/")));
     for (const file of files(path.join(out, directory))) {
-      const src = "/" + path.relative(out, file).split(path.sep).join("/");
-      if (!assets.has(src)) fs.unlinkSync(file);
+      const relative = path.relative(out, file).split(path.sep).join("/");
+      if (copied.has(relative) && !assets.has("/" + relative)) fs.unlinkSync(file);
     }
   }
   const sourceSha = process.env.GITHUB_SHA ?? execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
