@@ -175,6 +175,8 @@
   font-size: inherit;
 }
 
+.prose-chinese pre:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+
 /* 表格 */
 .prose-chinese table {
   width: 100%;

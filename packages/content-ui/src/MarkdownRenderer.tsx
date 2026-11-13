@@ -268,14 +268,14 @@ function CodeBlock({ children }: { children?: ReactNode }) {
   }
   if (language === "graph") {
     try { return <div className="my-8 not-prose"><GraphBlock data={parseGraphData(JSON.parse(code.trim()))} /></div>; }
-    catch (error) { return <div><p role="alert" className="text-[var(--color-danger)]">{error instanceof Error ? error.message : String(error)}</p><pre>{children}</pre></div>; }
+    catch (error) { return <div><p role="alert" className="text-[var(--color-danger)]">{error instanceof Error ? error.message : String(error)}</p><pre tabIndex={0}>{children}</pre></div>; }
   }
 
   // 普通代码块
   return (
     <div className="code-block-wrapper">
       <div className="code-block-header">{language && <span className="code-block-lang">{language}</span>}<CopyButton key={code} code={code} /></div>
-      <pre>{children}</pre>
+      <pre tabIndex={0}>{children}</pre>
     </div>
   );
 }
