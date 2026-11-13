@@ -38,7 +38,10 @@ export function MermaidDiagram({ code }: { code: string }) {
           flowchart: { htmlLabels: true, curve: "basis" },
         });
         const result = await mermaid.render(`mermaid-${crypto.randomUUID()}`, code.trim());
-        if (!cancelled) setSvg(result.svg);
+        const element = new DOMParser().parseFromString(result.svg, "image/svg+xml").documentElement;
+        if (!(element instanceof SVGSVGElement) || !(element.viewBox.baseVal.width > 0)) throw new Error("图表缺少有效尺寸。");
+        element.setAttribute("width", String(element.viewBox.baseVal.width));
+        if (!cancelled) setSvg(new XMLSerializer().serializeToString(element));
       } catch (cause) {
         if (!cancelled) setError(cause instanceof Error ? cause.message : String(cause));
       }
@@ -49,7 +52,7 @@ export function MermaidDiagram({ code }: { code: string }) {
 
   return <div ref={containerRef} aria-busy={!!code.trim() && !svg && !error}>
     {error ? <div className="mermaid-error" role="alert"><p className="mermaid-error-title">图表渲染失败</p><pre className="mermaid-error-message">{error}</pre><pre className="mermaid-error-code">{code}</pre></div>
-      : svg ? <div className="mermaid-container" dangerouslySetInnerHTML={{ __html: svg }} />
+      : svg ? <div className="mermaid-container" role="region" aria-label="图表" tabIndex={0} dangerouslySetInnerHTML={{ __html: svg }} />
       : code.trim() ? <p className="mermaid-loading">正在加载图表…</p> : null}
   </div>;
 }

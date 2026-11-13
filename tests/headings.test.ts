@@ -48,3 +48,11 @@ test('ordinary headings cannot collide with IDs reserved by GFM footnotes', () =
   assert.equal(new Set(ids).size, ids.length);
   assert.equal(extractHeadingsFromContent(content)[0].id, 'footnote-label-1');
 });
+
+test('Markdown tables expose a named keyboard scroll region and preserve their cells', () => {
+  const markup = renderToStaticMarkup(createElement(MarkdownRenderer, { content: '| Product | Use |\n| --- | --- |\n| PostgreSQL | Transactions |' }));
+  assert.match(markup, /role="region" aria-label="表格" tabindex="0"/);
+  assert.match(markup, /<th>Product<\/th>/);
+  assert.match(markup, /<td>PostgreSQL<\/td>/);
+  assert.match(markup, /<td>Transactions<\/td>/);
+});

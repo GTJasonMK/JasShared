@@ -373,7 +373,7 @@ export function MarkdownRenderer({ content, renderLink, idPrefix = "" }: Markdow
         },
         // 表格
         table: ({ children, ...props }) => (
-          <div className="overflow-x-auto my-6">
+          <div className="overflow-x-auto my-6" role="region" aria-label="表格" tabIndex={0}>
             <table {...props}>{children}</table>
           </div>
         ),
