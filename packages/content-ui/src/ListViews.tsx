@@ -8,17 +8,18 @@ import { BackToTop } from "./BackToTop";
 import { useContentHost } from "./ContentHost";
 import { ContentCover } from "./PageView";
 import { NoteCategoryNavigation } from "./NoteCategoryNavigation";
+export { NoteCategoryNavigation } from "./NoteCategoryNavigation";
 
 export function SectionTitle({ children, subtitle, level = 2 }: { children: ReactNode; subtitle?: string; level?: 1 | 2 }) {
   const Heading = level === 1 ? "h1" : "h2";
-  return <div className="mb-10"><Heading className="text-3xl font-semibold tracking-tight">{children}</Heading>{subtitle && <p className="text-sm text-[var(--color-text-muted)] mt-3">{subtitle}</p>}</div>;
+  return <div className="content-section-heading mb-10"><Heading className="text-3xl font-semibold tracking-tight">{children}</Heading>{subtitle && <p className="text-sm text-[var(--color-text-muted)] mt-3">{subtitle}</p>}</div>;
 }
 function ListLayout({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   const host = useContentHost();
   const configured = host.section ? host.sections?.[host.section] : undefined;
-  return <div className="jas-content max-w-4xl mx-auto px-6 py-12"><SectionTitle level={1} subtitle={configured?.description ?? subtitle}>{configured?.title ?? title}</SectionTitle>{children}<BackToTop /></div>;
+  return <div className="jas-content content-list-page max-w-4xl mx-auto px-6 py-12"><SectionTitle level={1} subtitle={configured?.description ?? subtitle}>{configured?.title ?? title}</SectionTitle>{children}<BackToTop /></div>;
 }
-function Empty({ children }: { children: ReactNode }) { return <p className="text-[var(--color-text-muted)] text-center py-16">{children}</p>; }
+function Empty({ children }: { children: ReactNode }) { return <p className="content-empty text-[var(--color-text-muted)] text-center py-16">{children}</p>; }
 function Tags({ tags = [] }: { tags?: readonly string[] }) { return <div className="flex flex-wrap gap-2">{tags.map((tag) => <span key={tag} className="tag">{tag}</span>)}</div>; }
 function Card({ type, slug, onOpen, children, selected }: { type: JasBlogContentType; slug: string; onOpen?: () => void; children: ReactNode; selected?: boolean }) {
   const href = useContentHost().contentHref?.(type, slug);
