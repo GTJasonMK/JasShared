@@ -1,9 +1,16 @@
-.note-categories { display: grid; gap: .5rem; margin-bottom: 2rem; }
-.note-category-row { display: flex; flex-wrap: wrap; min-width: 0; gap: .25rem 1.25rem; border-bottom: 1px solid var(--color-border-light); }
-.note-category-row[data-nested="true"] { padding-inline-start: 1rem; border-left: 1px solid var(--color-border); }
-.note-category-row button { min-height: 44px; min-width: 44px; max-width: 100%; padding: .5rem .25rem; border-bottom: 2px solid transparent; text-align: left; font-size: .875rem; color: var(--color-text-muted); overflow-wrap: anywhere; }
-.note-category-row button:hover { color: var(--color-primary-dark); }
-.note-category-row button[aria-pressed="true"] { border-color: currentColor; color: var(--color-primary-dark); font-weight: 600; }
+.note-categories { min-width: 0; margin-bottom: 2rem; }
+.note-category-tree, .note-category-children { margin: 0; padding: 0; list-style: none; }
+.note-category-children { margin-inline-start: .75rem; padding-inline-start: .5rem; border-inline-start: 1px solid var(--color-border); }
+.note-category-children[hidden] { display: none; }
+.note-category-row { display: flex; align-items: start; min-width: 0; gap: .125rem; }
+.note-category-select, .note-category-toggle { min-height: 44px; min-width: 44px; border: 0; border-radius: .5rem; background: transparent; color: var(--color-text-muted); font-family: inherit; font-size: .875rem; line-height: 1.5; cursor: pointer; }
+.note-category-select { display: block; flex: 1; width: 100%; min-width: 0; padding: .625rem .75rem; text-align: start; overflow-wrap: anywhere; }
+.note-category-toggle { display: grid; flex: 0 0 44px; place-items: center; padding: .75rem; }
+.note-category-toggle svg { width: 1rem; height: 1rem; }
+.note-category-toggle[aria-expanded="true"] svg { transform: rotate(90deg); }
+.note-categories button:hover { color: var(--color-primary-dark); background: var(--color-surface-dark); }
+.note-category-select[aria-pressed="true"] { color: var(--color-primary-dark); background: var(--color-primary-light); font-weight: 600; }
+.note-categories button:focus-visible { outline: 2px solid var(--color-primary-dark); outline-offset: 2px; }
 .note-category-path { display: flex; flex-wrap: wrap; align-items: baseline; gap: .375rem .5rem; }
 .note-category-path a { color: inherit; }
 .note-category-path a:hover { color: var(--color-primary-dark); text-decoration: underline; }
