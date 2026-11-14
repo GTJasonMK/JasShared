@@ -1,7 +1,9 @@
 import { parseNoteCategories, type NoteCategory } from "./note-categories";
+import type { JasBlogContentType } from "./types";
 
-export const SECTION_IDS = ["home", "notes", "projects", "diary", "graphs", "roadmap", "photography"] as const;
+export const SECTION_IDS = ["home", "notes", "projects", "diary", "graphs", "roadmap", "photography", "timeline"] as const;
 export type SectionId = typeof SECTION_IDS[number];
+export const CONTENT_SECTIONS: Record<JasBlogContentType, SectionId | null> = { note: "notes", project: "projects", graph: "graphs", roadmap: "roadmap", diary: "diary", page: null };
 export interface SiteSection { title: string; description: string; enabled: boolean }
 export type NavigationItem = { target: SectionId | `page:${string}`; label: string; visible: boolean };
 export type ResolvedNavigationItem = Pick<NavigationItem, "target" | "label"> & { href: string };

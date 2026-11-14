@@ -4,6 +4,7 @@ import { contentDisplay, extractHeadingsFromContent, type CoverImage, type PageM
 import ArticleBody from "./ArticleBody";
 import { ReadingLayout } from "./ReadingLayout";
 import { useContentHost, type PreviewLayout } from "./ContentHost";
+import { PublicationTime } from "./PublicationTime";
 
 export function ContentCover({ cover, lazy = false }: { cover: CoverImage; lazy?: boolean }) {
   const host = useContentHost(); const Image = host.Image ?? "img";
@@ -17,6 +18,7 @@ export function PageView({ page, comments, layout = "page" }: { page: PageMetada
   return <ReadingLayout layout={layout} headings={display.toc ? headings : []} header={<><h1>{page.title}</h1>{page.description && <p className="text-[var(--color-text-muted)] mt-4">{page.description}</p>}</>}>
     {page.error && <p role="alert" className="text-[var(--color-danger)] mb-4">{page.error}</p>}
     {page.display?.cover && <ContentCover cover={page.display.cover} />}
+    <PublicationTime metadata={page} />
     <ArticleBody content={page.content} />
     {display.comments && host.commentsEnabled !== false && comments && <section className="content-comments"><h2>评论与讨论</h2>{comments}</section>}
   </ReadingLayout>;

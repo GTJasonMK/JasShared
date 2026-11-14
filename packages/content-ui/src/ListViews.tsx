@@ -8,6 +8,7 @@ import { BackToTop } from "./BackToTop";
 import { useContentHost } from "./ContentHost";
 import { ContentCover } from "./PageView";
 import { NoteCategoryNavigation } from "./NoteCategoryNavigation";
+import { PublicationTime } from "./PublicationTime";
 export { NoteCategoryNavigation } from "./NoteCategoryNavigation";
 
 export function SectionTitle({ children, subtitle, level = 2 }: { children: ReactNode; subtitle?: string; level?: 1 | 2 }) {
@@ -32,7 +33,7 @@ function Card({ type, slug, onOpen, children, selected }: { type: JasBlogContent
 export function NoteCard({ note, onOpen, selected }: { note: NoteListEntry; onOpen?: () => void; selected?: boolean }) {
   return <Card type="note" slug={note.slug} onOpen={onOpen} selected={selected}>
     {note.display?.cover && <ContentCover cover={note.display.cover} lazy />}
-    <div className="flex flex-wrap items-center gap-3 mb-2"><time className="text-xs text-[var(--color-text-subtle)]">{note.date}</time><Tags tags={note.tags} /></div>
+    <div className="flex flex-wrap items-center gap-3 mb-2"><PublicationTime metadata={note} /><Tags tags={note.tags} /></div>
     <h3 className="text-lg font-semibold mb-2 hover:text-[var(--color-primary)] break-words">{note.title}</h3>
     {note.excerpt && <p className="text-[var(--color-text-muted)] text-sm">{note.excerpt}</p>}
     {note.error && <p role="alert" className="text-[var(--color-danger)] text-sm mt-2">{note.error}</p>}
@@ -61,6 +62,7 @@ export function ProjectCard({ project, onOpen, selected, compact = false }: { pr
   return <Card type="project" slug={project.slug} onOpen={onOpen} selected={selected}>
     <h3 className="text-lg font-semibold mb-2 hover:text-[var(--color-primary)] break-words">{project.name}</h3>
     {project.description && <p className="text-[var(--color-text-muted)] text-sm mb-3">{project.description}</p>}
+    <PublicationTime metadata={project} />
     {tech.length > 0 && <div className="flex flex-wrap gap-1.5 mb-3">{visibleTech.map((item, index) => <span key={`${item.name}-${index}`} className="text-xs px-2 py-0.5 rounded bg-[var(--color-surface-dark)] text-[var(--color-text-muted)]">{item.name}</span>)}{tech.length > visibleTech.length && <span className="text-xs px-2 py-0.5 text-[var(--color-text-muted)]">+{tech.length - visibleTech.length}</span>}</div>}
     <Tags tags={project.tags} />
     {project.error && <p role="alert" className="text-[var(--color-danger)] text-sm mt-2">{project.error}</p>}
@@ -77,7 +79,7 @@ export function GraphsListView({ items, onOpen, selectedSlug }: { items: GraphLi
     <h3 className="text-lg font-semibold mb-2 hover:text-[var(--color-primary)] break-words">{graph.name}</h3>
     {graph.description && <p className="text-[var(--color-text-muted)] text-sm mb-3">{graph.description}</p>}
     {graph.error && <p role="alert" className="text-[var(--color-danger)] text-sm mb-3 whitespace-pre-wrap">{graph.error}</p>}
-    <div className="flex flex-wrap gap-4 text-xs text-[var(--color-text-muted)]">{graph.date && <time>{graph.date}</time>}<span>{graph.nodeCount} 个节点</span><span>{graph.edgeCount} 条连接</span></div>
+    <div className="flex flex-wrap gap-4 text-xs text-[var(--color-text-muted)]"><PublicationTime metadata={graph} /><span>{graph.nodeCount} 个节点</span><span>{graph.edgeCount} 条连接</span></div>
   </Card>)}</div> : <Empty>暂无知识图谱，敬请期待...</Empty>}</ListLayout>;
 }
 
@@ -88,7 +90,7 @@ export function RoadmapsListView({ items, onOpen, selectedSlug }: { items: Roadm
     return group.length ? <section key={status} className="mb-12"><h2 className="text-lg font-medium mb-4">{ROADMAP_STATUS_BADGE_CONFIG[status].label}</h2><div className="grid gap-4">{group.map((roadmap) => <Card key={roadmap.slug} type="roadmap" slug={roadmap.slug} onOpen={onOpen ? () => onOpen(roadmap.slug) : undefined} selected={roadmap.slug === selectedSlug}>
       <div className="flex flex-wrap items-start justify-between gap-4 mb-2"><h3 className="text-lg font-semibold break-words">{roadmap.title}</h3><span className={`text-xs px-2 py-1 rounded ${ROADMAP_STATUS_BADGE_CONFIG[status].className}`}>{ROADMAP_STATUS_BADGE_CONFIG[status].label}</span></div>
       {roadmap.description && <p className="text-sm text-[var(--color-text-muted)] mb-2">{roadmap.description}</p>}
-      {roadmap.date && <time className="text-xs text-[var(--color-text-muted)]">创建于 {roadmap.date}</time>}
+      <PublicationTime metadata={roadmap} />
       {roadmap.progress.total > 0 && <div className="mt-4"><div className="flex justify-between text-xs mb-1"><span>{roadmap.progress.done}/{roadmap.progress.total} 已完成</span><span>{Math.round(roadmap.progress.done / roadmap.progress.total * 100)}%</span></div><div role="progressbar" aria-label="完成进度" aria-valuenow={roadmap.progress.done} aria-valuemax={roadmap.progress.total} aria-valuemin={0} className="h-2 bg-[var(--color-surface-dark)] rounded-full overflow-hidden flex"><div className="h-full bg-[var(--color-success)]" style={{ width: `${roadmap.progress.done / roadmap.progress.total * 100}%` }} /><div className="h-full bg-[var(--color-primary)]" style={{ width: `${roadmap.progress.inProgress / roadmap.progress.total * 100}%` }} /></div></div>}
       {roadmap.error && <p role="alert" className="text-[var(--color-danger)] text-sm mt-2">{roadmap.error}</p>}
     </Card>)}</div></section> : null;

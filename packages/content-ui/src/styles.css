@@ -9,5 +9,9 @@
 @source "./roadmap-ui.ts";
 .jas-content { min-width: 0; overflow-wrap: anywhere; }
 .jas-content { color: var(--color-text); font-family: var(--font-sans); }
+.publication-time { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: .375rem; color: var(--color-text-muted); font-size: .75rem; line-height: 1.7; font-variant-numeric: tabular-nums; }
+.reading-body > .publication-time { margin-bottom: .75rem; }
+.photography-grid > li { scroll-margin-top: 7.5rem; }
+.photography-grid figcaption > .publication-time { flex-basis: 100%; }
 .jas-content :is(button, a, summary, select):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 .jas-content dialog::backdrop { background: rgb(0 0 0 / 80%); }

@@ -5,7 +5,7 @@ import type { JasBlogContentType } from "./types";
 
 export function createContentDraft(raw: string, type: JasBlogContentType): string {
   const parsed = parseMarkdownContent(raw, type);
-  return serializeContentDocument({ ...parsed, type, metadata: { publication: "draft" }, frontmatterBlock: parsed.frontmatterBlock ?? undefined, metadataDirty: true });
+  return serializeContentDocument({ ...parsed, type, metadata: { publication: "draft", publishedAt: undefined }, frontmatterBlock: parsed.frontmatterBlock ?? undefined, metadataDirty: true });
 }
 
 export interface ContentDocumentSaveInput {

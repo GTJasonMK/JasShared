@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseDocument } from "yaml";
-import { parseSiteConfig, CONTENT_DIRS, parsePhotos, type SiteConfig } from "@jas/content-core";
+import { parseSiteConfig, CONTENT_DIRS, parsePhotos, readContentDate, readPublishedAt, type SiteConfig } from "@jas/content-core";
 import { migrateSiteConfig } from "@jas/content-core/site-migration";
 import { atomicWrite, fileVersion, markdownFiles, withWorkspaceLock, workspaceFile, writeVersioned } from "./files";
 import { SITE_FILE, PHOTO_FILE } from "./workspace";
@@ -47,8 +47,13 @@ export async function migrateWorkspace(root: string, backupDirectory: string, si
       if (!match) { save(relative, `${bom}---${newline}publication: published${newline}---${newline}${content}`); continue; }
       const document = parseDocument(match[2]);
       if (document.errors.length) throw new Error(`${relative}：${document.errors[0].message}`);
-      if (document.has("publication")) continue;
-      document.set("publication", "published");
+      let updated = false;
+      if (!document.has("publication")) { document.set("publication", "published"); updated = true; }
+      if (document.get("publication") === "published" && !document.has("publishedAt")) {
+        const date = readContentDate(document.get("date"));
+        if (date) { document.set("publishedAt", date); updated = true; }
+      } else if (document.has("publishedAt")) readPublishedAt(document.get("publishedAt"));
+      if (!updated) continue;
       save(relative, bom + match[1] + document.toString({ lineWidth: 0 }).trimEnd().replace(/\r?\n/g, newline) + match[3] + match[4]);
     }
     const photoPath = workspaceFile(root, PHOTO_FILE, true);

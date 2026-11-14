@@ -10,6 +10,7 @@ import { useContentHost, type PreviewLayout } from "./ContentHost";
 import { GraphBlock } from "./GraphBlock";
 import { ContentLink } from "./ContentLink";
 import { ContentCover } from "./PageView";
+import { PublicationTime } from "./PublicationTime";
 
 type DocumentBody = { content: string; error?: string };
 type ShellProps = { back?: ReactNode; layout?: PreviewLayout };
@@ -25,7 +26,7 @@ export function NoteView({ note, back, comments, onTagSelect, layout = "page" }:
   const categoryPath = noteCategoryPath(host.noteCategories ?? [], note.category);
   return <ReadingLayout back={back} layout={layout} headings={display.toc ? headings : []} header={<>
     <nav className="reading-kicker note-category-path" aria-label="笔记所属分类"><span>{host.sections?.notes.title ?? "学习笔记"}</span>{categoryPath.map((category) => <span className="note-category-path" key={category.id}><span aria-hidden="true">/</span>{host.noteCategoryHref ? <ContentLink href={host.noteCategoryHref(category.id)}>{category.name}</ContentLink> : <span>{category.name || "未命名分类"}</span>}</span>)}</nav>
-    {note.date && <time className="text-sm text-[var(--color-text-muted)]">{note.date}</time>}
+    <PublicationTime metadata={note} />
     <h1>{note.title}</h1>
     <Issue error={note.error} />
     <div className="flex flex-wrap gap-2">{note.tags?.map((tag) => onTagSelect
@@ -44,6 +45,7 @@ export function ProjectView({ project, back, layout = "page" }: ShellProps & { p
   return <ReadingLayout back={back} layout={layout} header={<>
     <p className="reading-kicker">{host.sections?.projects.title ?? "开源项目"}</p>
     <h1>{project.name}</h1>
+    <PublicationTime metadata={project} />
     {project.description && <p className="text-[var(--color-text-muted)] mb-4">{project.description}</p>}
     <Issue error={project.error} />
     <div className="flex flex-wrap gap-3 mb-6">
@@ -82,6 +84,7 @@ export function RoadmapView({ roadmap, back, layout = "page" }: ShellProps & { r
       <div className="bg-[var(--color-surface-dark)]/40 p-8">
         <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-secondary)] mb-2">{host.sections?.roadmap.title ?? "我的规划"}</p>
         <div className="flex flex-wrap items-center gap-3 mb-2"><h1 className="text-2xl font-bold break-words">{roadmap.title}</h1><span className={`text-xs px-2 py-1 rounded ${ROADMAP_STATUS_BADGE_CONFIG[status].className}`}>{ROADMAP_STATUS_BADGE_CONFIG[status].label}</span></div>
+        <PublicationTime metadata={roadmap} />
         {roadmap.description && <p className="text-[var(--color-text-muted)] mb-4">{roadmap.description}</p>}
         <Issue error={roadmap.error} />
         {progress.total > 0 && <div className="rounded-lg p-4 bg-[var(--color-surface)]/60">
@@ -107,7 +110,7 @@ export function GraphView({ graph, back, layout = "page" }: ShellProps & { graph
       <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-secondary)] mb-2">{host.sections?.graphs.title ?? "知识图谱"}</p>
       <h1 className="text-2xl font-bold mb-2 break-words">{graph.name}</h1>
       {graph.description && <p className="text-[var(--color-text-muted)] mb-4">{graph.description}</p>}
-      {graph.date && <time className="text-sm text-[var(--color-text-muted)]">{graph.date}</time>}
+      <PublicationTime metadata={graph} />
       <div className="flex flex-wrap gap-3 mt-4">
         <div className="flex items-center gap-2 px-4 py-2 bg-[var(--color-surface-dark)] rounded-lg border-l-3 border-[var(--color-secondary)]"><span className="text-2xl font-bold text-[var(--color-text)]">{graph.graphData.nodes.length}</span><span className="text-sm text-[var(--color-text-muted)]">个节点</span></div>
         <div className="flex items-center gap-2 px-4 py-2 bg-[var(--color-surface-dark)] rounded-lg border-l-3 border-[var(--color-primary)]"><span className="text-2xl font-bold text-[var(--color-text)]">{graph.graphData.edges.length}</span><span className="text-sm text-[var(--color-text-muted)]">条连接</span></div>

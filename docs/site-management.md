@@ -1,10 +1,10 @@
 # 站点内容合同和工具
 
-`content-core` 0.6.0 持有独立页面、明确发布状态、站点配置、摄影清单和站点操作结果类型。首页字段为 `home.motto` 与 `home.description`；导航解析结果保留 `target`、`href` 和 `label`，供宿主确定入口形态。笔记分类支持多级嵌套和稳定文档引用，见 [多级笔记分类](note-categories.md)。
+`content-core` 0.7.0 持有独立页面、明确发布状态、站点配置、摄影清单和站点操作结果类型。所有博客内容通过 `publishedAt` 保存首次发布时间，`timeline` 为汇总栏目，见 [首次发布时间](publication-timeline.md)。首页字段为 `home.motto` 与 `home.description`；导航解析结果保留 `target`、`href` 和 `label`，供宿主确定入口形态。笔记分类支持多级嵌套和稳定文档引用，见 [多级笔记分类](note-categories.md)。
 
-`content-ui` 0.6.4 提供共享列表、正文、摄影及随内容容器布局的目录。`./lists` 导出 `NoteCategoryNavigation`，宿主可组合分类、卡片和筛选控件，继续复用多级分类的同一实现。列表页、栏目标题与空状态分别提供 `content-list-page`、`content-section-heading`、`content-empty` 样式入口。代码块、宽表格和 Mermaid 图表支持键盘聚焦与横向滚动，并保留可见焦点。图表按生成尺寸显示，窄屏不缩小标签；表格列保留最小宽度。返回顶部按钮位于内容末尾，避免遮住正文，编辑器预览仍使用自身的滚动容器。宿主先导入 `@jas/content-ui/theme.css`，再导入应用样式和 `@jas/content-ui/styles.css`。颜色仅在主题入口定义，内容容器不再重置颜色。`ContentHost.theme` 可明确指定浅深主题，未指定时继承父级与宿主；`useRootTheme` 提供根主题订阅。`graph-ui` 0.3.0 复用相同变量，默认节点随主题变化，明确指定的节点颜色保持原意。
+`content-ui` 0.7.0 提供共享列表、正文、摄影及随内容容器布局的目录。`PublicationTime` 在各类内容中展示首次发布时间，`./back-to-top` 提供独立返回顶部入口。`./lists` 导出 `NoteCategoryNavigation`，宿主可组合分类、卡片和筛选控件，继续复用多级分类的同一实现。列表页、栏目标题与空状态分别提供 `content-list-page`、`content-section-heading`、`content-empty` 样式入口。代码块、宽表格和 Mermaid 图表支持键盘聚焦与横向滚动，并保留可见焦点。图表按生成尺寸显示，窄屏不缩小标签；表格列保留最小宽度。返回顶部按钮位于内容末尾，避免遮住正文，编辑器预览仍使用自身的滚动容器。宿主先导入 `@jas/content-ui/theme.css`，再导入应用样式和 `@jas/content-ui/styles.css`。颜色仅在主题入口定义，内容容器不再重置颜色。`ContentHost.theme` 可明确指定浅深主题，未指定时继承父级与宿主；`useRootTheme` 提供根主题订阅。`graph-ui` 0.3.0 复用相同变量，默认节点随主题变化，明确指定的节点颜色保持原意。
 
-`site-tools` 0.6.1 是 Node 专用包，持有工作区校验、图片处理、版本化清单写入、迁移、静态产物整理及 GitHub Pages 发布流程。静态素材清理只处理从 `public` 复制的文件，保留同目录下的页面和路由数据。`./files` 子路径提供相同的目录、路径与文件读写规则，博客读取内容时也使用它。纯合同与展示包均不依赖 Node、Next 或 Tauri。应用通过固定安装包消费，不引用其他应用源码。
+`site-tools` 0.7.0 是 Node 专用包，持有工作区校验、图片处理、版本化清单写入、迁移、静态产物整理及 GitHub Pages 发布流程，负责在发布构建前记录首次时间。静态素材清理只处理从 `public` 复制的文件，保留同目录下的页面和路由数据。`./files` 子路径提供相同的目录、路径与文件读写规则，博客读取内容时也使用它。纯合同与展示包均不依赖 Node、Next 或 Tauri。应用通过固定安装包消费，不引用其他应用源码。
 
 旧首页结构仅由 `@jas/content-core/site-migration` 的显式迁移器接收。工具 `migrate` 先读取原始配置再转换，备份原始字节与编辑器恢复记录。匹配迁移前磁盘版本的草稿更新基准版本，已有冲突继续保留；重复迁移不重复改写。升级时先关闭编辑器，再执行博客的 `npm run site:migrate`，备份目录不能与其他工作区混用。
 

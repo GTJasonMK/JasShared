@@ -5,6 +5,7 @@ import { atomicWrite, withWorkspaceLock, workspaceFile } from "./files";
 import { validateWorkspace } from "./workspace";
 import { runCommand, type CommandRunner } from "./process";
 import type { PublishState, PublishInspection } from "@jas/content-core";
+import { recordFirstPublications } from "./publication-time";
 export type { PublishState, PublishInspection } from "@jas/content-core";
 
 type Reporter = (state: PublishState) => void;
@@ -115,18 +116,19 @@ export async function publishWorkspace(root: string, stateDirectory: string, rep
         state = { root: state.root, phase: "checking", message: "校验本次内容", updatedAt: Date.now() };
         update("checking", "校验本次内容");
         validateWorkspace(root);
-        const before = fingerprint(root, inspection.changes);
+        const changes = [...new Set([...inspection.changes, ...recordFirstPublications(root)])].sort();
+        const before = fingerprint(root, changes);
         const blobs: Record<string, string | null> = {};
-        for (const file of inspection.changes) blobs[file] = fs.existsSync(workspaceFile(root, file, true)) ? await git(run, root, "hash-object", `--path=${file}`, "--", file) : null;
+        for (const file of changes) blobs[file] = fs.existsSync(workspaceFile(root, file, true)) ? await git(run, root, "hash-object", `--path=${file}`, "--", file) : null;
         update("building", "校验通过，正在构建静态站点");
         await run("npm", ["run", "build"], root);
         const latest = await inspectPublication(root, run);
-        if (latest.blockers.length || JSON.stringify(latest.changes) !== JSON.stringify(inspection.changes) || fingerprint(root, latest.changes) !== before) throw new Error("构建期间内容发生变化，已停止发布，请重新检查。");
-        const message = `content: 更新站点内容（${inspection.changes.length} 个文件，${randomUUID()}）`;
-        state.pendingCommit = { parentSha: head, paths: inspection.changes, message, blobs };
+        if (latest.blockers.length || JSON.stringify(latest.changes) !== JSON.stringify(changes) || fingerprint(root, latest.changes) !== before) throw new Error("构建期间内容发生变化，已停止发布，请重新检查。");
+        const message = `content: 更新站点内容（${changes.length} 个文件，${randomUUID()}）`;
+        state.pendingCommit = { parentSha: head, paths: changes, message, blobs };
         update("committing", "保存本次内容提交");
         const pathspec = workspaceFile(root, ".run/publish-paths", true);
-        atomicWrite(pathspec, inspection.changes.map((file) => `:(literal)${file}\0`).join(""));
+        atomicWrite(pathspec, changes.map((file) => `:(literal)${file}\0`).join(""));
         try { await git(run, root, "add", `--pathspec-from-file=${pathspec}`, "--pathspec-file-nul"); } finally { fs.unlinkSync(pathspec); }
         if (!matchesBlobs(gitEntries(await git(run, root, "ls-files", "--stage", "-z")), blobs)) throw new Error("暂存内容与构建快照不一致，已停止提交。");
         await git(run, root, "commit", "-m", message);

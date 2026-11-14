@@ -1,7 +1,7 @@
 export type Publication = "draft" | "published";
 export interface CoverImage { src: string; alt: string; width: number; height: number }
 export interface DisplayOptions { cover?: CoverImage; toc?: boolean; comments?: boolean }
-export interface PublicationMetadata { publication?: Publication; display?: DisplayOptions }
+export interface PublicationMetadata { publication?: Publication; publishedAt?: string; display?: DisplayOptions }
 
 export function readPublication(value: unknown): Publication {
   if (value !== "draft" && value !== "published") throw new Error("publication 必须明确填写 draft 或 published。");

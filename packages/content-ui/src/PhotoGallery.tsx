@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Photo } from "@jas/content-core";
 import { useContentHost } from "./ContentHost";
+import { PublicationTime } from "./PublicationTime";
 
 function PhotoImage({ photo, full = false, priority = false }: { photo: Photo; full?: boolean; priority?: boolean }) {
   const host = useContentHost();
@@ -78,6 +79,7 @@ function PhotoViewer({ photo, index, count, onMove, onClose, trigger }: {
       <footer className="photography-viewer-caption">
         <div>
           <h2 id="photo-viewer-title">{photo.title}</h2>
+          <PublicationTime metadata={photo} />
           <p className="photography-viewer-meta">
             {photo.category && <span>{photo.category}</span>}
             {photo.location && <span>{photo.location}</span>}
@@ -127,7 +129,7 @@ export default function PhotoGallery({ photos }: { photos: Photo[] }) {
     <ul className="photography-grid" aria-label={category === null ? "全部摄影作品" : `${category}摄影作品`}>
       {visible.map((photo, index) => {
         const largest = photo.images[photo.images.length - 1];
-        return <li key={photo.id}>
+        return <li key={photo.id} id={`photo-${photo.id}`}>
         <figure>
           <a href={host.assetUrl?.(largest.src) ?? largest.src} className="photography-photo-button" style={{ aspectRatio: `${largest.width} / ${largest.height}` }} aria-label={`查看作品：${photo.title}`} aria-haspopup="dialog"
             onClick={(event) => {
@@ -137,7 +139,7 @@ export default function PhotoGallery({ photos }: { photos: Photo[] }) {
             <PhotoImage photo={photo} priority={index === 0} />
             <span className="photography-expand" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5" /></svg></span>
           </a>
-          <figcaption><h3>{photo.title}</h3><p>{[photo.location, photo.takenAt?.slice(0, 4)].filter(Boolean).join(" / ")}</p></figcaption>
+          <figcaption><h3>{photo.title}</h3><p>{[photo.location, photo.takenAt?.slice(0, 4)].filter(Boolean).join(" / ")}</p><PublicationTime metadata={photo} /></figcaption>
         </figure>
       </li>; })}
     </ul>

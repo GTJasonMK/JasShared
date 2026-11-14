@@ -1,5 +1,6 @@
 import type { DiaryEntry } from "@jas/content-core";
 import ArticleContent from "./ArticleBody";
+import { PublicationTime } from "./PublicationTime";
 
 interface DiaryEntryArticleProps {
   entry: DiaryEntry;
@@ -33,6 +34,7 @@ function EntryMeta({ entry }: { entry: DiaryEntry }) {
 export default function DiaryEntryArticle({ entry, singleEntry = false }: DiaryEntryArticleProps) {
   return (
     <article>
+      <PublicationTime metadata={entry} />
       {singleEntry ? null : (
         <header className="mb-4">
           <div className="flex items-center gap-3">

@@ -1,6 +1,6 @@
 {
   "name": "@jas/content-ui",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "type": "module",
   "sideEffects": ["**/*.css"],
   "exports": {
@@ -14,11 +14,12 @@
     "./article": { "types": "./dist/ArticleBody.d.ts", "default": "./dist/ArticleBody.js" },
     "./markdown": { "types": "./dist/MarkdownRenderer.d.ts", "default": "./dist/MarkdownRenderer.js" },
     "./diary": { "types": "./dist/DiaryDayView.d.ts", "default": "./dist/DiaryDayView.js" },
+    "./back-to-top": { "types": "./dist/BackToTop.d.ts", "default": "./dist/BackToTop.js" },
     "./roadmap-ui": { "types": "./dist/roadmap-ui.d.ts", "default": "./dist/roadmap-ui.js" }
   },
   "dependencies": {
     "@jas/graph-core": "0.2.0",
-    "@jas/content-core": "0.6.0",
+    "@jas/content-core": "0.7.0",
     "@jas/graph-ui": "0.3.0",
     "katex": "0.16.28",
     "mermaid": "11.12.2",

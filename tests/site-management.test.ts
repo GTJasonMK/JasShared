@@ -37,6 +37,14 @@ test("site configuration separates navigation visibility from public routes and 
   for (const candidate of [{ ...site(), name: "" }, { ...site(), extra: true }, { ...site(), navigation: [...site().navigation, site().navigation[0]] }, { ...site(), navigation: [{ target: "page:../escape", label: "bad", visible: true }] }, { ...site(), sections: { ...site().sections, home: { title: "Home", description: "", enabled: false } } }]) assert.throws(() => parseSiteConfig(candidate));
 });
 
+test("时间线栏目只通过显式迁移加入旧配置", () => {
+  const { timeline: _timeline, ...sections } = site().sections;
+  const previous = { ...site(), sections };
+  assert.throws(() => parseSiteConfig(previous));
+  assert.deepEqual(migrateSiteConfig(previous).sections.timeline, { title: "发布时间线", description: "", enabled: true });
+  assert.deepEqual(migrateSiteConfig(previous).navigation, previous.navigation);
+});
+
 test("home upgrade is explicit, rejects unknown fields and preserves unfinished draft text", () => {
   const previous = { ...site(), home: { heading: "A，", accent: "B", description: "Retained", notesDescription: "Old notes", projectsDescription: "Old projects" } };
   assert.throws(() => parseSiteConfig(previous));
@@ -206,6 +214,30 @@ function publishFixture() {
   };
   return { root, remote, stateDirectory, runner, cleanup() { for (const dir of [root, remote, stateDirectory]) fs.rmSync(dir, { recursive: true }); } };
 }
+
+test("发布构建前保存首次时间并纳入提交，构建失败后重试保留原时间", { timeout: 60_000 }, async () => {
+  const fixture = publishFixture();
+  try {
+    const file = "content/notes/new.md";
+    write(fixture.root, file, "---\npublication: published\ntitle: New\n---\nRetained body\n");
+    let first = "";
+    const failing: CommandRunner = async (command, args, cwd) => {
+      if (command === "npm") {
+        first = parseMarkdownContent(fs.readFileSync(path.join(fixture.root, file), "utf8"), "note").metadata.publishedAt!;
+        assert.ok(first.endsWith("Z"));
+        throw new Error("Synthetic build failure");
+      }
+      return fixture.runner(command, args, cwd);
+    };
+    await assert.rejects(publishWorkspace(fixture.root, fixture.stateDirectory, () => {}, { run: failing, verify: async () => true }), /build failure/);
+    assert.equal(git(fixture.root, "log", "-1", "--format=%s"), "Synthetic baseline");
+    await publishWorkspace(fixture.root, fixture.stateDirectory, () => {}, { run: fixture.runner, verify: async () => true });
+    assert.equal(parseMarkdownContent(git(fixture.root, "show", `HEAD:${file}`), "note").metadata.publishedAt, first);
+    write(fixture.root, file, fs.readFileSync(path.join(fixture.root, file), "utf8") + "Edited body\n");
+    await publishWorkspace(fixture.root, fixture.stateDirectory, () => {}, { run: fixture.runner, verify: async () => true });
+    assert.equal(parseMarkdownContent(git(fixture.root, "show", `HEAD:${file}`), "note").metadata.publishedAt, first);
+  } finally { fixture.cleanup(); }
+});
 
 test("素材恢复先核对整批记录，后续损坏项不会导致前面的原图被删除", () => {
   const root = workspace();

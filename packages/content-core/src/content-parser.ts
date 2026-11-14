@@ -4,6 +4,7 @@ import { normalizeDiaryTime } from "./diary-contract";
 import { normalizeRoadmapStatus } from "./roadmap-status";
 import { parseDisplay, readPublication } from "./publication";
 import { readNoteCategoryId } from "./note-categories";
+import { readPublishedAt } from "./publication-time";
 import type { ContentMetadata, ContentType, LineEnding, TechStackItem } from "./types";
 
 export { parseRoadmapItemsFromContent } from "./roadmap-content";
@@ -62,6 +63,7 @@ export function normalizeContentMetadata(fields: Record<string, unknown>, type: 
   if (alias && fields[alias] !== undefined) issues.push(`${type}.${alias} 已移除，请使用 ${alias === "title" ? "name" : "title"}。`);
   if (type !== "doc") {
     metadata.publication = field("publication", readPublication, undefined);
+    metadata.publishedAt = field("publishedAt", readPublishedAt, undefined);
     if (type === "note" || type === "page") metadata.display = field("display", parseDisplay, undefined);
     else if (fields.display !== undefined) issues.push(`${type}.display 仅适用于笔记和独立页面。`);
   }

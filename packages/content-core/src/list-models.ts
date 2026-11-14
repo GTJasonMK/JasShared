@@ -3,7 +3,7 @@ import type { DiaryDaySummary } from "./diary-contract";
 import type { RoadmapProgress } from "./roadmap-content";
 
 export type NoteListEntry = NoteMetadata & { slug: string; tags: string[]; error?: string };
-export type ProjectListEntry = Pick<ProjectMetadata, "name" | "description" | "date" | "tags" | "techStack"> & { slug: string; error?: string };
+export type ProjectListEntry = Pick<ProjectMetadata, "name" | "description" | "date" | "tags" | "techStack" | "publication" | "publishedAt"> & { slug: string; error?: string };
 export type GraphListEntry = GraphMetadata & { slug: string; nodeCount: number; edgeCount: number; error?: string };
 export type RoadmapListEntry = RoadmapMetadata & { slug: string; progress: RoadmapProgress; error?: string };
 export type DiaryListEntry = DiaryDaySummary & { error?: string };
