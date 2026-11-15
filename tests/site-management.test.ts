@@ -77,7 +77,9 @@ test("home migration backs up recovery records, rebases matching versions and is
     assert.equal(restored[key].photoVersion, record.photoVersion);
     assert.deepEqual(restored.unrelated, records.unrelated);
     assert.deepEqual(await migrateWorkspace(root, backup, undefined, { editorStateDirectory: state }), []);
-    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(backup, "migration.json"), "utf8")).changed, ["content/site.json", "editor-drafts.json"]);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(backup, "migration.json"), "utf8")).changed, ["content/template-manifest.json", "content/friends.json", "content/site.json", "editor-drafts.json"]);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(root, "content/template-manifest.json"), "utf8")).version, 1);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "content/friends.json"), "utf8")), []);
     restored[key].siteVersion = "stale-before-upgrade";
     fs.writeFileSync(path.join(state, "editor-drafts.json"), JSON.stringify(restored));
     await migrateWorkspace(root, backup, undefined, { editorStateDirectory: state });
@@ -118,7 +120,7 @@ test("migration preserves creative content, backs up original bytes and is repea
     const original = '\uFEFF---\r\n# keep\r\ntitle: Synthetic\r\ncustom: { keep: true }\r\n---\r\nRetained body\r\n';
     write(root, "content/notes/retained.md", original);
     const changed = await migrateWorkspace(root, backup, site());
-    assert.deepEqual(changed, ["content/notes/retained.md"]);
+    assert.deepEqual(changed, ["content/notes/retained.md", "content/template-manifest.json", "content/friends.json"]);
     assert.equal(fs.readFileSync(path.join(backup, "content/notes/retained.md"), "utf8"), original);
     const current = fs.readFileSync(path.join(root, "content/notes/retained.md"), "utf8");
     assert.ok(current.includes('# keep\r\n'));

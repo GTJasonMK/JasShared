@@ -1,10 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseDocument } from "yaml";
-import { parseSiteConfig, CONTENT_DIRS, parsePhotos, readContentDate, readPublishedAt, type SiteConfig } from "@jas/content-core";
+import { parseSiteConfig, CONTENT_DIRS, parsePhotos, parseTemplateManifest, readContentDate, readPublishedAt, type SiteConfig, type TemplateManifest } from "@jas/content-core";
 import { migrateSiteConfig } from "@jas/content-core/site-migration";
 import { atomicWrite, fileVersion, markdownFiles, withWorkspaceLock, workspaceFile, writeVersioned } from "./files";
-import { SITE_FILE, PHOTO_FILE } from "./workspace";
+import { FRIENDS_FILE, SITE_FILE, TEMPLATE_MANIFEST_FILE, PHOTO_FILE } from "./workspace";
+
+const DEFAULT_TEMPLATE_MANIFEST: TemplateManifest = parseTemplateManifest({ version: 1, templates: [
+  { id: "article-list", label: "文章列表", kind: "collection", contentTypes: ["note", "page"], capabilities: { pagination: true, categoryFilter: true, tagFilter: true, series: true, related: true }, fields: ["title", "description", "pageSize", "rule", "manualItems"] },
+  { id: "project-list", label: "项目列表", kind: "collection", contentTypes: ["project"], capabilities: { pagination: true, tagFilter: true }, fields: ["title", "description", "pageSize", "rule", "manualItems"] },
+  { id: "friends-grid", label: "友链网格", kind: "collection", contentTypes: ["page"], capabilities: { pagination: false }, fields: ["title", "description"] },
+  { id: "article-detail", label: "文章详情", kind: "detail", contentTypes: ["note", "page"], capabilities: { series: true, related: true }, fields: ["display"] },
+  { id: "page-standard", label: "独立页面", kind: "page", contentTypes: ["page"], capabilities: { pagination: false }, fields: ["display"] },
+] });
 
 export async function migrateWorkspace(root: string, backupDirectory: string, site?: SiteConfig, options: { editorStateDirectory?: string } = {}): Promise<string[]> {
   return withWorkspaceLock(root, () => {
@@ -20,7 +28,10 @@ export async function migrateWorkspace(root: string, backupDirectory: string, si
     const sitePath = workspaceFile(root, SITE_FILE, true);
     const backupSite = path.join(backupDirectory, SITE_FILE);
     const previousVersion = fs.existsSync(backupSite) ? fileVersion(backupSite) : fs.existsSync(sitePath) ? fileVersion(sitePath) : undefined;
-    const config = fs.existsSync(sitePath) ? migrateSiteConfig(JSON.parse(fs.readFileSync(sitePath, "utf8"))) : parseSiteConfig(site);
+    let config = fs.existsSync(sitePath) ? migrateSiteConfig(JSON.parse(fs.readFileSync(sitePath, "utf8"))) : parseSiteConfig(site);
+    if (config.navigation.some((item) => item.target === "page:friends") && !(config.collections ?? []).some((collection) => collection.id === "friends")) {
+      config = parseSiteConfig({ ...config, collections: [...(config.collections ?? []), { id: "friends", slug: "friends", title: "友链", description: "常去的博客与站点。", enabled: true, templateId: "friends-grid", pageSize: 24, manualItems: [] }], navigation: config.navigation.map((item) => item.target === "page:friends" ? { ...item, target: "collection:friends" } : item) });
+    }
     const changed: string[] = [];
     const checkpoint = (relative: string) => {
       changed.push(relative);
@@ -59,6 +70,10 @@ export async function migrateWorkspace(root: string, backupDirectory: string, si
     const photoPath = workspaceFile(root, PHOTO_FILE, true);
     const old: Array<Record<string, unknown>> = fs.existsSync(photoPath) ? JSON.parse(fs.readFileSync(photoPath, "utf8")) : [];
     save(PHOTO_FILE, JSON.stringify(parsePhotos(old.map((photo) => ({ ...photo, publication: photo.publication ?? "published" }))), null, 2) + "\n");
+    const templatePath = workspaceFile(root, TEMPLATE_MANIFEST_FILE, true);
+    if (!fs.existsSync(templatePath)) save(TEMPLATE_MANIFEST_FILE, JSON.stringify(DEFAULT_TEMPLATE_MANIFEST, null, 2) + "\n");
+    const friendsPath = workspaceFile(root, FRIENDS_FILE, true);
+    if (!fs.existsSync(friendsPath)) save(FRIENDS_FILE, "[]\n");
     save(SITE_FILE, JSON.stringify(config, null, 2) + "\n");
     if (options.editorStateDirectory) {
       const file = path.join(options.editorStateDirectory, "editor-drafts.json");
