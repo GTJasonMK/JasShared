@@ -2,12 +2,12 @@ export type { GraphData } from "@jas/graph-core";
 export type { RoadmapStatus } from "./roadmap-status";
 export type { RoadmapContentItem as RoadmapItem, RoadmapItemStatus, RoadmapPriority } from "./roadmap-content";
 import type { RoadmapStatus } from "./roadmap-status";
-import type { PublicationMetadata } from "./publication";
+import type { ContentRef, JasBlogContentType, PublicationMetadata } from "./publication";
 
 export type ContentType = "note" | "project" | "diary" | "roadmap" | "graph" | "page" | "doc";
-export type JasBlogContentType = Exclude<ContentType, "doc">;
+export type { ContentRef, JasBlogContentType } from "./publication";
 export type LineEnding = "lf" | "crlf";
-export const JASBLOG_CONTENT_TYPES = ["project", "note", "diary", "graph", "roadmap", "page"] as const;
+export const JASBLOG_CONTENT_TYPES = ["project", "note", "diary", "graph", "roadmap", "page"] as const satisfies readonly JasBlogContentType[];
 export const DIARY_DISPLAY_LABEL = "考研日志";
 export const DIARY_TIMELINE_LABEL = `${DIARY_DISPLAY_LABEL}时间线`;
 export const CONTENT_DIRS: Record<JasBlogContentType, string> = { note: "notes", project: "projects", diary: "diary", roadmap: "roadmaps", graph: "graphs", page: "pages" };
@@ -49,4 +49,50 @@ export interface DiaryDay {
   location?: string;
   entries: DiaryEntry[];
   error?: string;
+}
+
+export interface TemplateCapabilities {
+  pagination?: boolean;
+  categoryFilter?: boolean;
+  tagFilter?: boolean;
+  series?: boolean;
+  related?: boolean;
+}
+export interface TemplateDescriptor {
+  id: string;
+  label: string;
+  kind: "collection" | "detail" | "page";
+  contentTypes: JasBlogContentType[];
+  capabilities: TemplateCapabilities;
+  fields: string[];
+}
+export interface TemplateManifest { version: 1; templates: TemplateDescriptor[] }
+export interface CollectionRule {
+  contentTypes?: JasBlogContentType[];
+  categories?: string[];
+  tags?: string[];
+  tagMode?: "any" | "all";
+  includeDescendants?: boolean;
+}
+export interface CollectionItem { ref: ContentRef; pinned: boolean; order: number }
+export interface ContentCollection {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+  templateId: string;
+  pageSize: number;
+  rule?: CollectionRule;
+  manualItems: CollectionItem[];
+}
+export interface Friend {
+  id: string;
+  name: string;
+  url: string;
+  description: string;
+  avatar?: string;
+  order: number;
+  publication: PublicationMetadata["publication"];
+  publishedAt?: string;
 }

@@ -1,9 +1,11 @@
 import type { SiteConfig } from "./site";
 import type { Photo } from "./photography";
 import type { Publication } from "./publication";
+import type { Friend, TemplateManifest } from "./types";
 
 export interface NoteSummary { path: string; title: string; category?: string; publication: Publication }
-export interface SiteWorkspaceData { site: SiteConfig; photos: Photo[]; pages: Array<{ slug: string; title: string; publication: Publication }>; notes: NoteSummary[]; documents: Record<string, Publication>; siteVersion: string; photoVersion: string }
+export interface ContentSummary { ref: import("./publication").ContentRef; path: string; title: string; category?: string; tags?: string[]; publication: Publication; date?: string; publishedAt?: string }
+export interface SiteWorkspaceData { site: SiteConfig; photos: Photo[]; friends?: Friend[]; templateManifest?: TemplateManifest; content?: ContentSummary[]; pages: Array<{ slug: string; title: string; publication: Publication }>; notes: NoteSummary[]; documents: Record<string, Publication>; siteVersion: string; photoVersion: string; friendsVersion?: string }
 export interface PublishState { root: string; phase: string; message: string; sourceSha?: string; deploySha?: string; sourceRun?: number; pagesRun?: number; url?: string; updatedAt: number; pendingCommit?: { parentSha: string; paths: string[]; message: string; blobs: Record<string, string | null> } }
 export interface PublishInspection { repo: string; branch: string; changes: string[]; blockers: string[] }
-export type SiteToolCommand = "load_workspace" | "save_site" | "save_photos" | "import_image" | "import_photo" | "inspect_publication" | "publication_state" | "publish" | "check_document_delete";
+export type SiteToolCommand = "load_workspace" | "save_site" | "save_photos" | "save_friends" | "load_template_manifest" | "import_image" | "import_photo" | "inspect_publication" | "publication_state" | "publish" | "check_document_delete";

@@ -2,7 +2,7 @@ import { parse as parseYAML } from "yaml";
 import { parseStringArray, readContentDate, readFrontmatterString } from "./content-common";
 import { normalizeDiaryTime } from "./diary-contract";
 import { normalizeRoadmapStatus } from "./roadmap-status";
-import { parseDisplay, readPublication } from "./publication";
+import { parseDisplay, parseRelated, parseSeries, readPublication } from "./publication";
 import { readNoteCategoryId } from "./note-categories";
 import { readPublishedAt } from "./publication-time";
 import type { ContentMetadata, ContentType, LineEnding, TechStackItem } from "./types";
@@ -66,6 +66,8 @@ export function normalizeContentMetadata(fields: Record<string, unknown>, type: 
     metadata.publishedAt = field("publishedAt", readPublishedAt, undefined);
     if (type === "note" || type === "page") metadata.display = field("display", parseDisplay, undefined);
     else if (fields.display !== undefined) issues.push(`${type}.display 仅适用于笔记和独立页面。`);
+    if (fields.series !== undefined) metadata.series = field("series", parseSeries, undefined);
+    if (fields.related !== undefined) metadata.related = field("related", parseRelated, undefined);
   }
   return { metadata, issues };
 }

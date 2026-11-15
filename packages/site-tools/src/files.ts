@@ -38,6 +38,13 @@ export function writeVersioned(file: string, value: unknown, expected: string): 
   return fileVersion(file);
 }
 
+export function writeOptionalVersioned(file: string, value: unknown, expected: string): string {
+  const actual = fs.existsSync(file) ? fileVersion(file) : "";
+  if (actual !== expected) throw new Error("磁盘内容已变化，请重新载入或另存草稿。");
+  atomicWrite(file, JSON.stringify(value, null, 2) + "\n");
+  return fileVersion(file);
+}
+
 export async function withWorkspaceLock<T>(root: string, operation: () => T | Promise<T>): Promise<T> {
   const directory = workspaceFile(root, ".run", true);
   fs.mkdirSync(directory, { recursive: true });

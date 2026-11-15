@@ -1,6 +1,6 @@
 {
   "name": "@jas/content-ui",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "sideEffects": ["**/*.css"],
   "exports": {
@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@jas/graph-core": "0.2.0",
-    "@jas/content-core": "0.7.0",
+    "@jas/content-core": "0.8.0",
     "@jas/graph-ui": "0.3.0",
     "katex": "0.16.28",
     "mermaid": "11.12.2",

@@ -9,7 +9,7 @@ import { recordFirstPublications } from "./publication-time";
 export type { PublishState, PublishInspection } from "@jas/content-core";
 
 type Reporter = (state: PublishState) => void;
-const managed = (file: string) => path.posix.normalize(file) === file && (/^content\/(?:site\.json|photography\/photos\.json|(?:notes|projects|graphs|roadmaps|pages|diary)\/.+\.md)$/i.test(file) || /^public\/(?:media\/[a-f0-9]+\.webp|photography\/[^/]+\/(?:full|640|960)\.webp)$/u.test(file));
+const managed = (file: string) => path.posix.normalize(file) === file && (/^content\/(?:site\.json|template-manifest\.json|friends\.json|photography\/photos\.json|(?:notes|projects|graphs|roadmaps|pages|diary)\/.+\.md)$/i.test(file) || /^public\/(?:media\/[a-f0-9]+\.webp|photography\/[^/]+\/(?:full|640|960)\.webp)$/u.test(file));
 const git = (run: CommandRunner, root: string, ...args: string[]) => run("git", args, root);
 const gh = (run: CommandRunner, root: string, ...args: string[]) => run("gh", args, root);
 

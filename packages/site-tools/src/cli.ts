@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { assertNoteCategoryReferences, parseSiteConfig } from "@jas/content-core";
-import { editorStateDirectory, withWorkspaceLock, workspaceFile, writeVersioned } from "./files";
-import { loadWorkspace, readSite, SITE_FILE } from "./workspace";
+import { assertNoteCategoryReferences, parseFriends, parseSiteConfig } from "@jas/content-core";
+import { editorStateDirectory, withWorkspaceLock, workspaceFile, writeOptionalVersioned, writeVersioned } from "./files";
+import { loadWorkspace, readSite, SITE_FILE, FRIENDS_FILE, readTemplateManifest, TEMPLATE_MANIFEST_FILE } from "./workspace";
 import { importImage, importPhoto, savePhotos, recoverMediaCleanup } from "./media";
 import { finalizeExport, prepareExport } from "./export";
 import { migrateWorkspace } from "./migrate";
@@ -38,6 +38,8 @@ async function main() {
       return writeVersioned(workspaceFile(root, SITE_FILE), site, text("expectedVersion"));
     }); break;
     case "save_photos": result = await savePhotos(root, input.photos, text("expectedVersion")); break;
+    case "save_friends": result = await withWorkspaceLock(root, () => writeOptionalVersioned(workspaceFile(root, FRIENDS_FILE, true), parseFriends(input.friends), text("expectedVersion"))); break;
+    case "load_template_manifest": result = readTemplateManifest(root); break;
     case "import_image": result = await importImage(root, text("inputPath"), text("alt")); break;
     case "import_photo": {
       const strings: Record<string, string> = {};

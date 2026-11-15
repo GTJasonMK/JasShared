@@ -20,3 +20,6 @@ export * from "./site";
 export * from "./note-categories";
 export * from "./photography";
 export * from "./site-operations";
+export * from "./collections";
+export * from "./templates";
+export * from "./friends";
