@@ -5,13 +5,14 @@ export const SECTION_IDS = ["home", "notes", "projects", "diary", "graphs", "roa
 export type SectionId = typeof SECTION_IDS[number];
 export const CONTENT_SECTIONS: Record<JasBlogContentType, SectionId | null> = { note: "notes", project: "projects", graph: "graphs", roadmap: "roadmap", diary: "diary", page: null };
 export interface SiteSection { title: string; description: string; enabled: boolean; pageSize?: number; templateId?: string }
+export type SiteSections = Partial<Record<SectionId, SiteSection>> & { home: SiteSection };
 export type CollectionNavigationTarget = `collection:${string}`;
 export type NavigationItem = { target: SectionId | `page:${string}` | CollectionNavigationTarget; label: string; visible: boolean };
 export type ResolvedNavigationItem = Pick<NavigationItem, "target" | "label"> & { href: string };
 export interface SiteConfig {
   name: string; description: string;
   home: { motto: string; description: string };
-  footer: string; sections: Record<SectionId, SiteSection>; navigation: NavigationItem[]; collections?: ContentCollection[];
+  footer: string; sections: SiteSections; navigation: NavigationItem[]; collections?: ContentCollection[];
   noteCategories: NoteCategory[];
   background?: { desktop?: string; mobile?: string; alt: string };
   comments: { enabled: boolean; repo: string; repoId: string; category: string; categoryId: string };
@@ -31,19 +32,20 @@ export function parseSiteConfig(value: unknown, options: { draft?: boolean } = {
   const row = object(value, "站点配置", ["name", "description", "home", "footer", "sections", "navigation", "comments", "noteCategories", "collections", "background"]);
   const home = object(row.home, "首页", ["motto", "description"]);
   const sections = object(row.sections, "栏目", SECTION_IDS);
-  const parsedSections = Object.fromEntries(SECTION_IDS.map((id) => {
+  const parsedSections = Object.fromEntries(Object.keys(sections).map((id) => {
     const section = object(sections[id], id, ["title", "description", "enabled", "pageSize", "templateId"]);
     if (section.pageSize !== undefined && (!Number.isSafeInteger(section.pageSize) || (section.pageSize as number) < 1 || (section.pageSize as number) > 100)) throw new Error(`${id}.pageSize 必须是1到100之间的整数。`);
     if (section.templateId !== undefined) text(section.templateId, `${id}.templateId`);
     return [id, { title: text(section.title, `${id}.title`), description: text(section.description, `${id}.description`, true), enabled: boolean(section.enabled, `${id}.enabled`), ...(section.pageSize === undefined ? {} : { pageSize: section.pageSize as number }), ...(section.templateId === undefined ? {} : { templateId: section.templateId as string }) }];
-  })) as Record<SectionId, SiteSection>;
-  if (!parsedSections.home.enabled) throw new Error("首页必须保持公开。");
+  })) as SiteSections;
+  if (!parsedSections.home?.enabled) throw new Error("首页必须存在并保持公开。");
   if (!Array.isArray(row.navigation)) throw new Error("导航必须为数组。");
   const seen = new Set<string>();
   const navigation = row.navigation.map((input: unknown): NavigationItem => {
     const item = object(input, "导航项", ["target", "label", "visible"]);
     const target = text(item.target, "导航目标");
     if (!(SECTION_IDS as readonly string[]).includes(target) && !(target.startsWith("page:") && validPageSlug(target.slice(5))) && !(target.startsWith("collection:") && validPageSlug(target.slice(11)))) throw new Error(`导航目标无效：${target}`);
+    if ((SECTION_IDS as readonly string[]).includes(target) && !parsedSections[target as SectionId]) throw new Error(`导航引用了不存在的页面：${target}`);
     if (seen.has(target)) throw new Error(`导航目标重复：${target}`);
     seen.add(target);
     return { target: target as NavigationItem["target"], label: text(item.label, "导航名称"), visible: boolean(item.visible, "导航显示") };
@@ -65,7 +67,18 @@ export function navigationHref(target: NavigationItem["target"]): string { retur
 export function visibleNavigation(site: SiteConfig, publishedPages: readonly string[]): ResolvedNavigationItem[] {
   const pages = new Set(publishedPages);
   const collections = new Set((site.collections ?? []).filter((collection) => collection.enabled).map((collection) => collection.id));
-  return site.navigation.filter((item) => item.visible && (item.target.startsWith("page:") ? pages.has(item.target.slice(5)) : item.target.startsWith("collection:") ? collections.has(item.target.slice(11)) : site.sections[item.target as SectionId].enabled)).map((item) => ({ target: item.target, href: navigationHref(item.target), label: item.label }));
+  return site.navigation.filter((item) => item.visible && (item.target.startsWith("page:") ? pages.has(item.target.slice(5)) : item.target.startsWith("collection:") ? collections.has(item.target.slice(11)) : site.sections[item.target as SectionId]?.enabled)).map((item) => ({ target: item.target, href: navigationHref(item.target), label: item.label }));
+}
+
+export function configuredSections(site: SiteConfig): Array<[SectionId, SiteSection]> {
+  return SECTION_IDS.flatMap((id) => { const section = site.sections[id]; return section ? [[id, section] as [SectionId, SiteSection]] : []; });
+}
+
+export function removeSiteSection(site: SiteConfig, id: SectionId): SiteConfig {
+  if (id === "home") throw new Error("首页不能移除。");
+  const sections = { ...site.sections };
+  delete sections[id];
+  return { ...site, sections, navigation: site.navigation.filter((item) => item.target !== id) };
 }
 
 function parseBackground(value: unknown, options: { draft?: boolean }): SiteConfig["background"] {

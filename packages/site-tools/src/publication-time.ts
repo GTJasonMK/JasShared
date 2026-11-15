@@ -13,11 +13,11 @@ export function recordFirstPublications(root: string, timestamp = new Date().toI
   const plans: Array<{ relative: string; before: string; next: string }> = [];
   for (const document of documents) {
     const section = CONTENT_SECTIONS[document.type];
-    if (document.metadata.publication !== "published" || document.metadata.publishedAt || (section && !site.sections[section].enabled)) continue;
+    if (document.metadata.publication !== "published" || document.metadata.publishedAt || (section && !site.sections[section]?.enabled)) continue;
     if (document.issues.length) throw new Error(`${document.relative}：${document.issues.join("；")}`);
     plans.push({ relative: document.relative, before: createHash("sha256").update(document.raw).digest("hex"), next: serializeContentDocument({ ...document, type: document.type, frontmatterBlock: document.frontmatterBlock ?? undefined, metadata: { ...document.metadata, publishedAt }, metadataDirty: true }) });
   }
-  if (site.sections.photography.enabled) {
+  if (site.sections.photography?.enabled) {
     const before = fileVersion(workspaceFile(root, PHOTO_FILE));
     const photos = readPhotos(root);
     if (photos.some((photo) => photo.publication === "published" && !photo.publishedAt)) {

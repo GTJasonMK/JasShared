@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { execFileSync } from "node:child_process";
-import { SECTION_IDS, parseSiteConfig, visibleNavigation, readPublication, normalizeContentMetadata, createContentDraft, parseMarkdownContent, serializeContentDocument, type SiteConfig } from "../packages/content-core/src/index";
+import { SECTION_IDS, configuredSections, removeSiteSection, parseSiteConfig, visibleNavigation, readPublication, normalizeContentMetadata, createContentDraft, parseMarkdownContent, serializeContentDocument, type SiteConfig } from "../packages/content-core/src/index";
 import { atomicWrite, fileVersion, withWorkspaceLock, writeVersioned } from "../packages/site-tools/src/files";
 import { readSite, loadWorkspace, validateWorkspace, PHOTO_FILE, SITE_FILE } from "../packages/site-tools/src/workspace";
 import { migrateWorkspace } from "../packages/site-tools/src/migrate";
@@ -37,12 +37,25 @@ test("site configuration separates navigation visibility from public routes and 
   for (const candidate of [{ ...site(), name: "" }, { ...site(), extra: true }, { ...site(), navigation: [...site().navigation, site().navigation[0]] }, { ...site(), navigation: [{ target: "page:../escape", label: "bad", visible: true }] }, { ...site(), sections: { ...site().sections, home: { title: "Home", description: "", enabled: false } } }]) assert.throws(() => parseSiteConfig(candidate));
 });
 
-test("时间线栏目只通过显式迁移加入旧配置", () => {
+test("解析和迁移保留已移除页面，不自动补回预设栏目", () => {
   const { timeline: _timeline, ...sections } = site().sections;
   const previous = { ...site(), sections };
-  assert.throws(() => parseSiteConfig(previous));
-  assert.deepEqual(migrateSiteConfig(previous).sections.timeline, { title: "发布时间线", description: "", enabled: true });
+  assert.equal(parseSiteConfig(previous).sections.timeline, undefined);
+  assert.equal(migrateSiteConfig(previous).sections.timeline, undefined);
   assert.deepEqual(migrateSiteConfig(previous).navigation, previous.navigation);
+});
+
+test("移除页面同时移除导航，保存与重新加载不恢复页面", () => {
+  const original = site();
+  original.navigation.push({ target: "diary", label: "日志", visible: true });
+  const removed = parseSiteConfig(JSON.parse(JSON.stringify(removeSiteSection(original, "diary"))));
+  assert.equal(removed.sections.diary, undefined);
+  assert.equal(configuredSections(removed).some(([id]) => id === "diary"), false);
+  assert.equal(removed.navigation.some((item) => item.target === "diary"), false);
+  assert.equal(visibleNavigation(removed, []).some((item) => item.target === "diary"), false);
+  assert.ok(original.sections.diary);
+  assert.throws(() => removeSiteSection(original, "home"), /首页/);
+  assert.throws(() => parseSiteConfig({ ...removed, navigation: original.navigation }), /不存在的页面/);
 });
 
 test("home upgrade is explicit, rejects unknown fields and preserves unfinished draft text", () => {
@@ -148,10 +161,12 @@ test("exports remove disabled routes and unused copied assets without deleting r
   const root = workspace(); const previous = process.env.GITHUB_SHA;
   try {
     const config = site(); config.sections.notes.enabled = false;
+    delete config.sections.diary;
     write(root, "content/site.json", JSON.stringify(config));
     prepareExport(root);
     write(root, "out/index.html", '<img src="/nested/media/public.webp"><img src="/photography/visible/full.webp">');
     write(root, "out/notes.html", "stale content"); write(root, "out/notes/old.html", "stale detail");
+    write(root, "out/diary.html", "removed page"); write(root, "out/diary/old.html", "removed detail");
     write(root, "public/media/public.webp", "public"); write(root, "public/media/draft.webp", "draft");
     write(root, "public/photography/visible/full.webp", "visible"); write(root, "public/photography/draft/full.webp", "draft");
     write(root, "out/media/public.webp", "public"); write(root, "out/media/draft.webp", "draft");
@@ -162,6 +177,8 @@ test("exports remove disabled routes and unused copied assets without deleting r
     finalizeExport(root);
     assert.equal(fs.existsSync(path.join(root, "out/notes.html")), false);
     assert.equal(fs.existsSync(path.join(root, "out/notes")), false);
+    assert.equal(fs.existsSync(path.join(root, "out/diary.html")), false);
+    assert.equal(fs.existsSync(path.join(root, "out/diary")), false);
     assert.equal(fs.existsSync(path.join(root, "out/media/public.webp")), true);
     assert.equal(fs.existsSync(path.join(root, "out/media/draft.webp")), false);
     assert.equal(fs.readFileSync(path.join(root, "out/photography/visible/full.webp"), "utf8"), "visible");

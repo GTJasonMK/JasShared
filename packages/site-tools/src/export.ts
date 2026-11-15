@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { SECTION_IDS } from "@jas/content-core";
 import { readSite, validateWorkspace } from "./workspace";
 import { workspaceFile } from "./files";
 
@@ -21,8 +22,8 @@ function files(directory: string): string[] {
 export function finalizeExport(root = process.cwd()): void {
   const site = readSite(root);
   const out = workspaceFile(root, "out");
-  for (const [id, section] of Object.entries(site.sections)) {
-    if (section.enabled) continue;
+  for (const id of SECTION_IDS) {
+    if (site.sections[id]?.enabled) continue;
     for (const suffix of ["", ".html", ".txt"]) fs.rmSync(path.join(out, id + suffix), { recursive: true, force: true });
   }
   const assets = new Set<string>();

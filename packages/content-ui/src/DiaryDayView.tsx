@@ -77,7 +77,7 @@ export default function DiaryDayView({
       {back}
 
       <header className="mb-8">
-        <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-secondary)] mb-3">{host.sections?.diary.title ?? "考研日志"}</p>
+        <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-secondary)] mb-3">{host.sections?.diary?.title ?? "考研日志"}</p>
         <div className="flex items-baseline gap-3 mb-2">
           <span className="text-4xl font-bold text-[var(--color-primary)] leading-none">{dateParts.day}</span>
           <span className="text-sm text-[var(--color-text-muted)]">{dateParts.year}年{dateParts.month}月</span>

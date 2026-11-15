@@ -25,7 +25,7 @@ export function NoteView({ note, back, comments, onTagSelect, layout = "page" }:
   const display = contentDisplay(note, "note");
   const categoryPath = noteCategoryPath(host.noteCategories ?? [], note.category);
   return <ReadingLayout back={back} layout={layout} headings={display.toc ? headings : []} header={<>
-    <nav className="reading-kicker note-category-path" aria-label="笔记所属分类"><span>{host.sections?.notes.title ?? "学习笔记"}</span>{categoryPath.map((category) => <span className="note-category-path" key={category.id}><span aria-hidden="true">/</span>{host.noteCategoryHref ? <ContentLink href={host.noteCategoryHref(category.id)}>{category.name}</ContentLink> : <span>{category.name || "未命名分类"}</span>}</span>)}</nav>
+    <nav className="reading-kicker note-category-path" aria-label="笔记所属分类"><span>{host.sections?.notes?.title ?? "学习笔记"}</span>{categoryPath.map((category) => <span className="note-category-path" key={category.id}><span aria-hidden="true">/</span>{host.noteCategoryHref ? <ContentLink href={host.noteCategoryHref(category.id)}>{category.name}</ContentLink> : <span>{category.name || "未命名分类"}</span>}</span>)}</nav>
     <PublicationTime metadata={note} />
     <h1>{note.title}</h1>
     <Issue error={note.error} />
@@ -43,7 +43,7 @@ export function NoteView({ note, back, comments, onTagSelect, layout = "page" }:
 export function ProjectView({ project, back, layout = "page" }: ShellProps & { project: ProjectMetadata & DocumentBody }) {
   const host = useContentHost();
   return <ReadingLayout back={back} layout={layout} header={<>
-    <p className="reading-kicker">{host.sections?.projects.title ?? "开源项目"}</p>
+    <p className="reading-kicker">{host.sections?.projects?.title ?? "开源项目"}</p>
     <h1>{project.name}</h1>
     <PublicationTime metadata={project} />
     {project.description && <p className="text-[var(--color-text-muted)] mb-4">{project.description}</p>}
@@ -82,7 +82,7 @@ export function RoadmapView({ roadmap, back, layout = "page" }: ShellProps & { r
     <header className="rounded-2xl border border-[var(--color-border)] overflow-hidden mb-8">
       <div className="h-1 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)]" />
       <div className="bg-[var(--color-surface-dark)]/40 p-8">
-        <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-secondary)] mb-2">{host.sections?.roadmap.title ?? "我的规划"}</p>
+        <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-secondary)] mb-2">{host.sections?.roadmap?.title ?? "我的规划"}</p>
         <div className="flex flex-wrap items-center gap-3 mb-2"><h1 className="text-2xl font-bold break-words">{roadmap.title}</h1><span className={`text-xs px-2 py-1 rounded ${ROADMAP_STATUS_BADGE_CONFIG[status].className}`}>{ROADMAP_STATUS_BADGE_CONFIG[status].label}</span></div>
         <PublicationTime metadata={roadmap} />
         {roadmap.description && <p className="text-[var(--color-text-muted)] mb-4">{roadmap.description}</p>}
@@ -107,7 +107,7 @@ export function GraphView({ graph, back, layout = "page" }: ShellProps & { graph
   return <div className={`jas-content ${layout === "pane" ? "min-w-0 py-6" : "max-w-6xl mx-auto px-6 py-12"}`}>
     {back}
     <header className="rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-8 mb-8">
-      <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-secondary)] mb-2">{host.sections?.graphs.title ?? "知识图谱"}</p>
+      <p className="text-xs tracking-[0.16em] uppercase text-[var(--color-secondary)] mb-2">{host.sections?.graphs?.title ?? "知识图谱"}</p>
       <h1 className="text-2xl font-bold mb-2 break-words">{graph.name}</h1>
       {graph.description && <p className="text-[var(--color-text-muted)] mb-4">{graph.description}</p>}
       <PublicationTime metadata={graph} />
